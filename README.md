@@ -1,10 +1,10 @@
-# Makefile rules for erlang applications
+# Makefile for erlang applications
 
 A simpler, smaller and less capable alternative to erlang.mk.
 
-The idea is the same as erlang.mk, i.e., include erl.mk in a Makefile
-in the top directory of an erlang application, possibly customize, and
-you're done.
+The idea is the same as erlang.mk, i.e., include `erl.mk` in your
+`Makefile` in the top directory of an erlang application, possibly
+customize, and you're done.
 
 Supports downloading and build of external dependencies and running
 tests.
@@ -17,7 +17,7 @@ Does not support build of erlang releases.
 
 If you have an erlang-only application, create a directory with the
 same name as the application, put the erlang files in `src`, and
-create a Makefile in the application directory:
+create a `Makefile` in the application directory:
 
 ```
 myapp
@@ -26,7 +26,7 @@ myapp
     └── myapp.erl
 ```
 
-The Makefile should look like this:
+The `Makefile` should look like this:
 
 ```makefile
 include erl.mk
@@ -55,7 +55,7 @@ Note that `erl.mk` creates the `.app` file as well.
 
 ## Adding a dependency
 
-Suppose your application needs to use `eclip`.  Modify the Makefile
+Suppose your application needs to use `eclip`.  Modify the `Makefile`
 to:
 
 ```makefile
