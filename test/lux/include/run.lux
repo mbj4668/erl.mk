@@ -1,0 +1,6 @@
+[doc test various include directives]
+
+[shell test]
+    -Error
+    !make
+    ?SH-PROMPT

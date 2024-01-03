@@ -1,0 +1,1 @@
+-define(dinc, 42).

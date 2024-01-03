@@ -1,0 +1,9 @@
+[doc test handling of recursive dependencies]
+
+[shell test]
+    !make
+    ?SH-PROMPT
+    !ls -1 deps | sort
+    ?dinc
+    ?include
+    ?SH-PROMPT

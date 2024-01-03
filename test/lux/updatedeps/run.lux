@@ -1,0 +1,19 @@
+[doc test update of DEPS]
+
+[shell test]
+    !rm -rf deps
+    ?SH-PROMPT
+    !make
+    ?SH-PROMPT
+    !ls -1 deps
+    -include
+    ?dinc
+    ?SH-PROMPT
+
+    -
+    !env DEPS="dinc include" make
+    ?SH-PROMPT
+    !ls -1 deps
+    ?dinc
+    ?include
+    ?SH-PROMPT

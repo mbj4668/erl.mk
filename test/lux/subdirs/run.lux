@@ -1,0 +1,13 @@
+[doc ensure that failure in first subdir doesn't build second subdir]
+
+[shell test]
+    -SH-PROMPT
+    !make
+    ?Error
+    -
+    ?SH-PROMPT
+    !if [ -f sub2/out ]; then echo "NO""NO"; else echo YES; fi
+    -NONO
+    ?YES
+    ?SH-PROMPT
+    
