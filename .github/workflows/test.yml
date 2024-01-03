@@ -1,0 +1,29 @@
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: OTP ${{matrix.otp}}
+    strategy:
+      matrix:
+        otp: ['25']
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+
+      - name: Install lux
+        run: |
+          git clone https://github.com/hawk/lux.git
+          cd lux
+          autoconf
+          ./configure
+          make
+
+      - name: Run tests
+        run: |
+          export PATH=$PATH:$(pwd)/lux/bin
+          cd test
+          lux .
