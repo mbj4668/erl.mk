@@ -102,8 +102,8 @@ variables substituted:
 
 - `%APP%` - the name of the application
 - `%VSN%` - the version of the application
-- `%MODULES` - a comma separated list of the modules in the application
-- `%APPLICATIONS` - a comma separated list of applications, calculated
+- `%MODULES%` - a comma separated list of the modules in the application
+- `%APPLICATIONS%` - a comma separated list of applications, calculated
                     from `DEPS` and `LOCAL_DEPS`.
 
 #### Automatically generated
