@@ -1,0 +1,24 @@
+[doc test eunit]
+
+[shell test]
+    !make
+    ?SH-PROMPT
+    !make t=a:ok_test eunit
+    ?^erlc .*a.erl
+    ?Test passed.
+    ?SH-PROMPT
+
+    # ensure we don't rebuid
+    !make t=a:ok_test eunit
+    -erlc
+    ?Test passed.
+    ?SH-PROMPT
+    -
+
+    !make t=a eunit
+    ?Failed
+    ?SH-PROMPT
+
+    !make eunit
+    ?Failed
+    ?SH-PROMPT

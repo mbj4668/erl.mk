@@ -166,7 +166,7 @@ else
 _EUNIT_TESTS = fun $(t)/0
 endif
 else
-_EUNIT_TESTS = [$(call mkatomlist,$(sort $(_EUNIT_ERL_MODULES) $(_ERL_MODULES)))]
+_EUNIT_TESTS = [$(call mkatomlist,$(sort $(_EUNIT_ERL_MODULES) $(ERL_MODULES)))]
 endif
 
 .PHONY: eunit
