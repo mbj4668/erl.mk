@@ -229,18 +229,20 @@ test-deps: $(_TEST_DEPS_DIRS)
 $(DEPS_DIR)/%:
 	mkdir -p $(DEPS_DIR)
 	$(call dep_fetch_$(word 1, $(dep_$(notdir $@))),$(notdir $@))
-	if [ -f $@/configure.ac -o -f $@/configure.in ]; then			\
-	    ( cd $@ && autoreconf -if )						\
-	fi;									\
-	if [ -f $@/configure ]; then						\
-	    ( cd $@ && ./configure)						\
-	fi;									\
-	if [ -f $@/Makefile ]; then						\
-	    ( cd $@ && $(MAKE) ) || exit 1;					\
-	elif [ -f $@/rebar.config ]; then					\
+	if [ -f $@/rebar.config ]; then					\
 	    ( cd $@ && rebar3 compile ) || exit 1;				\
 	    if [ ! -d $@/ebin ]; then						\
 	      ln -s _build/default/lib/$(notdir $@)/ebin $@/ebin;		\
+	    fi;									\
+	else									\
+	    if [ -f $@/configure.ac -o -f $@/configure.in ]; then		\
+	        ( cd $@ && autoreconf -if )					\
+	    fi;									\
+	    if [ -f $@/configure ]; then					\
+	        ( cd $@ && ./configure)						\
+	    fi;									\
+	    if [ -f $@/Makefile ]; then						\
+	        ( cd $@ && $(MAKE) ) || exit 1;					\
 	    fi;									\
 	fi
 
