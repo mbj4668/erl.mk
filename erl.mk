@@ -13,12 +13,13 @@
 ###
 ### Customization - variables
 ### =========================
+### Set `DESCRIPTION` to a short description of the application
+### Set `VERSION` to suppress erl.mk's version detection (git) for the .app file
 ### Set `SUBDIRS` to add more sub directories for the build and clean passes
 ### Set `ERL_OPTS` to add options to `erl` for `make shell`
 ### Set `ERLC_OPTS` before including erl.mk to override default options to erlc
 ### Add to `ERLC_OPTS` after including erl.mk to add to default options to erlc
 ### Set `DIALYZER_OPTS` to pass options to dialyzer
-### Set `VERSION` to suppress erl.mk's version detection (git) for the .app file
 ### Set `ERLC_USE_SERVER` to `false` to avoid using erlc' compile server
 ### Set `ERL_MODULES` before including erl.mk to compile generated modules
 ### Set `EXCLUDE_ERL_MODULES` to exclude modules from the `modules` field in
@@ -102,21 +103,25 @@ erl-clean:
 ebin/%.beam: src/%.erl | ebin
 	erlc $(ERLC_OPTS) -o ebin $<
 
-_ERL_MODULE_LIST = $(subst $(space),$(comma),$(filter-out \
-			$(EXCLUDE_ERL_MODULES),$(ERL_MODULES)))
-_DEPS_LIST = $(subst $(space),$(comma),$(sort $(DEPS) $(LOCAL_DEPS)))
+_ERL_MODULE_LIST = $(call mkatomlist,$(filter-out $(EXCLUDE_ERL_MODULES),$(ERL_MODULES)))
+_DEPS_LIST = $(call mkatomlist,$(sort $(DEPS) $(LOCAL_DEPS)))
 _APP_LIST = kernel,stdlib$(if $(_DEPS_LIST),$(comma)$(_DEPS_LIST),)
+
+ifdef DESCRIPTION
+_DESCR = {description, \"$(DESCRIPTION)\"},$(newline)$(space)$(space)$(space)
+endif
 
 ifneq ($(wildcard src/$(_APP).app.src),)
 $(_APP_FILE): src/$(_APP).app.src | ebin
 	sed -e 's;%APP%;$(_APP);'						\
 	    -e 's;%VSN%;"$(VERSION)";'						\
+	    -e 's;%DESCRIPTION%;"$(DESCRIPTION)";'				\
 	    -e 's;%APPLICATIONS%;$(_APP_LIST);'					\
 	    -e 's;%MODULES%;$(_ERL_MODULE_LIST);' $< > $@
 else
 define _APP_FILE_CONTENTS
-{application,'$(_APP)',
-  [{vsn,\"$(VERSION)\"},
+{application,$(call mkatom,$(_APP)),
+  [$(_DESCR){vsn,\"$(VERSION)\"},
    {modules,[$(_ERL_MODULE_LIST)]},
    {registered,[]},
    {env,[]},
@@ -161,7 +166,7 @@ else
 _EUNIT_TESTS = fun $(t)/0
 endif
 else
-_EUNIT_TESTS = [$(subst $(space),$(comma),$(sort $(_EUNIT_ERL_MODULES) $(_ERL_MODULES)))]
+_EUNIT_TESTS = [$(call mkatomlist,$(sort $(_EUNIT_ERL_MODULES) $(_ERL_MODULES)))]
 endif
 
 .PHONY: eunit
@@ -229,7 +234,7 @@ test-deps: $(_TEST_DEPS_DIRS)
 $(DEPS_DIR)/%:
 	mkdir -p $(DEPS_DIR)
 	$(call dep_fetch_$(word 1, $(dep_$(notdir $@))),$(notdir $@))
-	if [ -f $@/rebar.config ]; then					\
+	if [ -f $@/rebar.config ]; then						\
 	    ( cd $@ && rebar3 compile ) || exit 1;				\
 	    if [ ! -d $@/ebin ]; then						\
 	      ln -s _build/default/lib/$(notdir $@)/ebin $@/ebin;		\
@@ -282,3 +287,14 @@ c_src.mk:
 	printf 'ERL_TOP=$$(ERL:%%/bin/erl=%%)\n' >> $@; \
 	printf 'OS=$$(shell uname -s)\n' >> $@; \
 	printf 'CFLAGS=-MMD -MP -MF .$$<.d -I$$(ERL_TOP)/usr/include\n' >> $@
+
+### Helpers
+
+define mkatom
+$(shell erl -noshell -eval 'io:write(list_to_atom("$1")),halt()')
+endef
+
+define mkatomlist
+$(subst $(space),$(comma),$(foreach m,$1,$(call mkatom,$(m))))
+endef
+

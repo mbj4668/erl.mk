@@ -101,7 +101,8 @@ If there is a file `src/NAME.app.src`, erl.mk will create
 variables substituted:
 
 - `%APP%` - the name of the application
-- `%VSN%` - the version of the application
+- `%VSN%` - the version of the application as a double quoted string
+- `%DESCRIPTION%` - the value of `$(DESCRIPTION)` as a double quoted string
 - `%MODULES%` - a comma separated list of the modules in the application
 - `%APPLICATIONS%` - a comma separated list of applications, calculated
                     from `DEPS` and `LOCAL_DEPS`.
