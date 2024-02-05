@@ -32,7 +32,7 @@ The `Makefile` should look like this:
 include erl.mk
 
 erl.mk:
-	curl -O https://raw.githubusercontent.com/mbj4668/erl.mk/main/$@
+	curl -s -O https://raw.githubusercontent.com/mbj4668/erl.mk/main/$@
 ```
 Now you can run `make`.  `erl.mk` will be downloaded and the erlang
 code compiled.
@@ -65,7 +65,7 @@ dep_eclip = git https://github.com/mbj4668/eclip.git
 include erl.mk
 
 erl.mk:
-	curl -O https://raw.githubusercontent.com/mbj4668/erl.mk/main/$@
+	curl -s -O https://raw.githubusercontent.com/mbj4668/erl.mk/main/$@
 ```
 
 Then simply run `make` again to download and build the dependency.
