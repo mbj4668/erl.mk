@@ -77,7 +77,7 @@ ERL_MODULES += $(_ERL_SOURCES:src/%.erl=%)
 _BEAM_FILES = $(ERL_MODULES:%=ebin/%.beam)
 _APP_FILE = ebin/$(_APP).app
 
-_PA_OPTS = $(patsubst %,-pa %/ebin,$(_DEPS_DIRS)) -pa ebin
+_PA_OPTS = $(patsubst %,-pa %/ebin,$(_DEPS_DIRS)) -pa ../$(_APP)/ebin
 
 ERLC_OPTS ?= -Werror +warn_export_vars +warn_shadow_vars +warn_obsolete_guard \
 	     +debug_info
@@ -134,7 +134,9 @@ endif
 ebin:
 	mkdir $@
 
+ifneq ($(MAKECMDGOALS),clean)
 -include .*.d
+endif
 
 ### Tests
 
@@ -176,8 +178,8 @@ eunit: test-build-erl
 
 test: eunit
 
-.PHONY: lux
-lux: do-build-erl test-deps
+.PHONY: lux lux-clean lux-build
+lux: do-build-erl test-deps lux-build
 	$(verbose) set -e;							\
 	if [ -d test/lux ]; then						\
 	  if [ -f $(DEPS_DIR)/lux/bin/lux ]; then				\
@@ -187,16 +189,31 @@ lux: do-build-erl test-deps
 	  fi									\
 	fi
 
+lux-build:
+	$(call lux_foreach,build)
+
 test: lux
 
 clean: lux-clean
 
 lux-clean:
+	$(call lux_foreach,clean)
 	rm -rf lux_logs
+
+define lux_foreach
+set -e;										\
+luxfiles=$$(if [ -d test/lux ]; then lux --mode list test/lux; fi);		\
+luxdirs=$$(for d in $${luxfiles}; do echo `dirname $$d`; done | sort -u); 	\
+for d in $${luxdirs}; do							\
+  if [ -f $$d/Makefile ]; then							\
+    $(MAKE) -C $$d $1;								\
+  fi;										\
+ done
+endef
 
 .PHONY: dialyzer
 dialyzer: all
-	dialyzer $(DIALYZER_OPTS) $(_PA_OPTS) --src src/*.erl
+	dialyzer $(DIALYZER_OPTS) $(_PA_OPTS) $(_BEAM_FILES)
 
 .PHONY: shell
 shell:

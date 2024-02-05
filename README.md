@@ -138,7 +138,7 @@ rules to generate the erlang source files in the `src` directory, and
 a rule to remove the generated file.
 
 ```makefile
-ERL_MODULES = my_generated_mod.erl
+ERL_MODULES = my_generated_mod
 
 include erl.mk
 
@@ -252,8 +252,14 @@ The handling of eunit tests is the same as in erlang.mk.
 
 ### lux
 
-Put all lux files in `test/lux`.  When this directory is found, erl.mk
-automatically adds lux as a dependency if needed.
+Put all lux files in `test/lux`, or in subdirectories of `test/lux`.
+When this directory is found, erl.mk automatically adds lux as a
+dependency if needed.
+
+If you need to build anything before running a lux test, create a
+`Makefile` in the same directory as the lux file, and create the
+targets `build` and `clean` in the makefile.  Before running `lux`,
+erl.mk will do `$(MAKE) build`, if a Makefile is found.
 
 To run all tests, including lux do:
 
