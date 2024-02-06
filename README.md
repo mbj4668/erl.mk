@@ -126,8 +126,34 @@ include c_src.mk
 
 c_src.mk:
 	$(MAKE) -f ../erl.mk $@
+```
 
-...
+Unless `CFLAGS` is set, `c_src.mk` sets `CFLAGS` to compile for `c99`,
+some useful warnings, and `-Werror`.  It also sets `LDFLAGS_NIF`,
+which is supposed to be used when linking a nif.
+
+Here's a full example of a Makefile for a simple nif:
+```makefile
+NIF = ../priv/my_nif.so
+
+all: $(NIF)
+
+include c_src.mk
+
+c_src.mk:
+	$(MAKE) -f ../erl.mk $@
+
+SOURCES := $(wildcard *.c)
+OBJS := $(SOURCES:%.c=./%.o)
+
+$(NIF): $(OBJS)
+	$(CC) $(LDFLAGS_NIF) -o $@ $^
+
+debug:
+	$(MAKE) DEBUG=true all
+
+clean:
+	rm -f ../priv/*.so ./*.so ./*.o *.o
 ```
 
 ### Generated erlang modules
