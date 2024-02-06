@@ -98,7 +98,7 @@ clean: erl-clean
 
 .PHONY: erl-clean
 erl-clean:
-	rm -rf ebin .*.d ebin/.test
+	rm -rf ebin .*.d ebin/.test test/*.beam
 
 ebin/%.beam: src/%.erl | ebin
 	erlc $(ERLC_OPTS) -o ebin $<
