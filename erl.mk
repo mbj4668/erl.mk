@@ -251,22 +251,26 @@ test-deps: $(_TEST_DEPS_DIRS)
 $(DEPS_DIR)/%:
 	mkdir -p $(DEPS_DIR)
 	$(call dep_fetch_$(word 1, $(dep_$(notdir $@))),$(notdir $@))
+	if [ -f $@/configure.ac -o -f $@/configure.in ]; then			\
+	  ( cd $@ && autoreconf -if )						\
+	fi;									\
+	if [ -f $@/configure ]; then						\
+	    ( cd $@ && ./configure)						\
+	fi;									\
+	$(MAKE) dep_patch_$(notdir $@); 					\
 	if [ -f $@/rebar.config ]; then						\
 	    ( cd $@ && rebar3 compile ) || exit 1;				\
 	    if [ ! -d $@/ebin ]; then						\
 	      ln -s _build/default/lib/$(notdir $@)/ebin $@/ebin;		\
 	    fi;									\
 	else									\
-	    if [ -f $@/configure.ac -o -f $@/configure.in ]; then		\
-	        ( cd $@ && autoreconf -if )					\
-	    fi;									\
-	    if [ -f $@/configure ]; then					\
-	        ( cd $@ && ./configure)						\
-	    fi;									\
 	    if [ -f $@/Makefile ]; then						\
 	        ( cd $@ && $(MAKE) ) || exit 1;					\
 	    fi;									\
 	fi
+
+dep_patch_%::
+	@:
 
 .PHONY: deps-clean
 deps-clean:
@@ -303,6 +307,7 @@ c_src.mk:
 	printf 'ERL=$$(shell readlink -f `which erl`)\n' >> $@; \
 	printf 'ERL_TOP=$$(ERL:%%/bin/erl=%%)\n' >> $@; \
 	printf 'OS=$$(shell uname -s)\n' >> $@; \
+	printf 'DEPS_DIR=$(DEPS_DIR)\n' >> $@; \
 	printf 'CFLAGS=-MMD -MP -MF .$$<.d -I$$(ERL_TOP)/usr/include\n\n' >> $@
 	printf 'ifeq ($$(OS), Linux)\n' >> $@; \
 	printf '  LDFLAGS_NIF = -shared\n' >> $@; \

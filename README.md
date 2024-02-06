@@ -167,7 +167,8 @@ EXCLUDE_ERL_MODULES = my_build
 ## Handling of dependencies
 
 The handling of dependencies is similar to erlang.mk, except there is
-no built-in list of packages.
+no built-in list of packages.  Also, the way packages are patched is
+different from erlang.mk.
 
 Add the name of the application to the variable `DEPS` if it is a
 run-time dependency that needs to be fetched and compiled.  Add to
@@ -192,6 +193,30 @@ TEST_DEPS = mytests
 dep_eclip = git https://github.com/mbj4668/eclip.git
 dep_idna = hex 6.1.1
 dep_mytests = ln ~/src/mytests
+```
+
+### Fetching, patching and building dependencies
+
+The following steps are performed when erl.mk needs to fetch a
+dependency:
+
+1. Fetch the package using the declared fetch method.
+2. If the package contains a `configure.ac` or `configure.in` file,
+   run `autoreconf -if`.
+3. If the package contains a `configure` script, run it.
+4. Build the target `dep_patch_NAME`.
+5. If the package contains a `rebar.config` file, run `rebar3`, else
+   if the package contains a `Makefile`, run `make`.
+
+You can extend the target `dep_patch_NAME::` (after including
+`erl.mk`) with additional commands to run before building the package.
+
+For example, the following rule patches `mjson` to be built for the
+AtomVM:
+
+```makefile
+dep_patch_mjson::
+	echo "ERLC_OPTS += -DNO_LISTS_TO_INTEGER_2" >> $(DEPS_DIR)/mjson/Makefile
 ```
 
 ## Tests
