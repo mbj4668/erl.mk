@@ -341,11 +341,15 @@ c_src.mk:
 
 ### Helpers
 
+# Used to be:
+#   $(shell erl -noshell -eval 'io:write(list_to_atom("$1")),halt()')
+# which is 100% correct, but slow.
+# Current function is not perfect, but good enough.
 define mkatom
-$(shell erl -noshell -eval 'io:write(list_to_atom("$1")),halt()')
+$(shell echo $1 | awk "/[a-z]([a-z][A-Z][0-9]_@)*/ {print $$1; next} \
+                       {print \"'\" $$1 \"'\"}")
 endef
 
 define mkatomlist
 $(subst $(space),$(comma),$(foreach m,$1,$(call mkatom,$(m))))
 endef
-
