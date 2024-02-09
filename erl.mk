@@ -79,8 +79,7 @@ _APP_FILE = ebin/$(_APP).app
 
 _PA_OPTS = $(patsubst %,-pa %/ebin,$(_DEPS_DIRS)) -pa ../$(_APP)/ebin
 
-ERLC_OPTS ?= -Werror +warn_export_vars +warn_shadow_vars +warn_obsolete_guard \
-	     +debug_info
+ERLC_OPTS ?= -Werror +warn_export_vars +warn_shadow_vars +warn_obsolete_guard
 ERLC_OPTS += -MMD -MP -MF .$(notdir $<).d -I include $(_PA_OPTS)
 
 ERLC_USE_SERVER ?= true
@@ -152,7 +151,9 @@ _EUNIT_BEAM_FILES = $(_EUNIT_ERL_MODULES:%=test/%.beam)
 
 .PHONY: test-build-erl
 test-build-erl: ERLC_OPTS += -DTEST=1 +debug_info
-test-build-erl: $(if $(wildcard ebin/.test),,erl-clean) do-build-erl do-build-erl-tests
+test-build-erl: $(if $(wildcard ebin/.test),,erl-clean) 			\
+		do-build-erl do-build-erl-tests
+	$(verbose) touch ebin/.test
 	$(verbose) touch ebin/.test
 
 .PHONY: do-build-erl-tests
@@ -212,7 +213,8 @@ for d in $${luxdirs}; do							\
 endef
 
 .PHONY: dialyzer
-dialyzer: all
+# dialyze beam files rather than erl files to easier check generated files
+dialyzer: test-build-erl
 	dialyzer $(DIALYZER_OPTS) $(_PA_OPTS) $(_BEAM_FILES)
 
 .PHONY: shell
