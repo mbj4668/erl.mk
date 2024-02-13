@@ -83,7 +83,6 @@ _PA_OPTS = $(patsubst %,-pa %/ebin,$(_DEPS_DIRS)) -pa ../$(_APP)/ebin
 
 ERLC_OPTS ?= -Werror +warn_export_vars +warn_shadow_vars +warn_obsolete_guard
 ERLC_OPTS += +debug_info -MMD -MP -MF .$(notdir $<).d -I include $(_PA_OPTS)
-export ERLC_OPTS
 
 ERLC_USE_SERVER ?= true
 export ERLC_USE_SERVER
@@ -284,7 +283,7 @@ $(DEPS_DIR)/%:
 	    fi;									\
 	else									\
 	    if [ -f $@/Makefile ]; then						\
-	        ( cd $@ && $(MAKE) ) || exit 1;					\
+	        ( cd $@ && env ERLC_OPTS=+debug_info $(MAKE) ) || exit 1;	\
 	    fi;									\
 	fi
 
