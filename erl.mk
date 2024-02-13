@@ -111,7 +111,7 @@ _DESCR = {description, \"$(DESCRIPTION)\"},$(newline)$(space)$(space)$(space)
 endif
 
 ifneq ($(wildcard src/$(_APP).app.src),)
-$(_APP_FILE): $(wildcard src) src/$(_APP).app.src | ebin
+$(_APP_FILE): src/$(_APP).app.src | ebin
 	sed -e 's;%APP%;$(_APP);'						\
 	    -e 's;%VSN%;"$(VERSION)";'						\
 	    -e 's;%DESCRIPTION%;"$(DESCRIPTION)";'				\
@@ -126,7 +126,7 @@ define _APP_FILE_CONTENTS
    {env,[]},
    {applications,[$(_APP_LIST)]}]}.
 endef
-$(_APP_FILE): $(wildcard src) | ebin
+$(_APP_FILE): | ebin
 	printf "$(subst $(newline),\n,$(_APP_FILE_CONTENTS))\n" > $@
 endif
 
