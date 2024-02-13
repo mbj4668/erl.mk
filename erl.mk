@@ -19,7 +19,6 @@
 ### Set `ERL_OPTS` to add options to `erl` for `make shell`
 ### Set `ERLC_OPTS` before including erl.mk to override default options to erlc
 ### Add to `ERLC_OPTS` after including erl.mk to add to default options to erlc
-### Set `DIALYZER_OPTS` to pass options to dialyzer
 ### Set `ERLC_USE_SERVER` to `false` to avoid using erlc' compile server
 ### Set `ERL_MODULES` before including erl.mk to compile generated modules
 ### Set `EXCLUDE_ERL_MODULES` to exclude modules from the `modules` field in
@@ -29,6 +28,9 @@
 ###                  dependencies (these won't be downloaded)
 ### Set `BUILD_DEPS` to a space-separated list of build dependencies
 ### Set `TEST_DEPS` to a space-separated list of test dependencies
+### Set `DIALYZER_PLT` to use a specific PLT, e.g., to use a custom built PLT
+### Set `DIALYZER_PLT_OPTS` to pass options to dialyzer when the PLT is built
+### Set `DIALYZER_OPTS` to pass options to dialyzer
 ###
 ### Customization - targets
 ### =======================
@@ -80,7 +82,8 @@ _APP_FILE = ebin/$(_APP).app
 _PA_OPTS = $(patsubst %,-pa %/ebin,$(_DEPS_DIRS)) -pa ../$(_APP)/ebin
 
 ERLC_OPTS ?= -Werror +warn_export_vars +warn_shadow_vars +warn_obsolete_guard
-ERLC_OPTS += -MMD -MP -MF .$(notdir $<).d -I include $(_PA_OPTS)
+ERLC_OPTS += +debug_info -MMD -MP -MF .$(notdir $<).d -I include $(_PA_OPTS)
+export ERLC_OPTS
 
 ERLC_USE_SERVER ?= true
 export ERLC_USE_SERVER
@@ -150,7 +153,7 @@ _EUNIT_ERL_MODULES = $(_EUNIT_ERL_SOURCES:test/%.erl=%)
 _EUNIT_BEAM_FILES = $(_EUNIT_ERL_MODULES:%=test/%.beam)
 
 .PHONY: test-build-erl
-test-build-erl: ERLC_OPTS += -DTEST=1 +debug_info
+test-build-erl: ERLC_OPTS += -DTEST=1
 test-build-erl: $(if $(wildcard ebin/.test),,erl-clean) 			\
 		do-build-erl do-build-erl-tests
 	$(verbose) touch ebin/.test
@@ -212,10 +215,24 @@ for d in $${luxdirs}; do							\
  done
 endef
 
+DIALYZER_PLT ?= .dialyzer.plt
+
 .PHONY: dialyzer
 # dialyze beam files rather than erl files to easier check generated files
-dialyzer: test-build-erl
-	dialyzer $(DIALYZER_OPTS) $(_PA_OPTS) $(_BEAM_FILES)
+dialyzer: all $(DIALYZER_PLT)
+	dialyzer --plt $(DIALYZER_PLT) $(DIALYZER_OPTS)				\
+	  $(_PA_OPTS) $(_BEAM_FILES)
+
+_PLT_DEPS_DIRS = $(patsubst %,%/ebin,$(_DEPS_DIRS))
+
+.dialyzer.plt:
+	dialyzer --build_plt --output_plt $(DIALYZER_PLT) $(DIALYZER_PLT_OPTS)	\
+	  --apps erts kernel stdlib $(LOCAL_DEPS) $(_PLT_DEPS_DIRS)
+
+distclean: dialyzer-plt-clean
+
+dialyzer-plt-clean:
+	rm -f $(DIALYZER_PLT)
 
 .PHONY: shell
 shell:

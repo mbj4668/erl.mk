@@ -247,13 +247,27 @@ dep_patch_mjson::
 
 ## Tests
 
-There is built-in support for dialyzer, and for running eunit, lux and
+There is built-in support for dialyzer and for running eunit, lux and
 custom tests.
 
 ### dialyzer
 
 Do `make dialyzer` to run dialyzer over the code base.  Set
-`DIALYZER_OPTS` to customize the way dialyzer is onvoked.
+`DIALYZER_OPTS` to customize the way dialyzer is invoked.
+
+erl.mk will first create a PLT with all dependencies and all OTP
+applications used.  Set `DIALYZER_PLT_OPTS` to pass
+additional parameters to dialyzer when the PLT is built.
+
+The variable `DIALYZER_PLT` can be set to override the name of the PLT
+file.  This can be used to do custom build of the PLT, e.g,:
+
+```makefile
+DIALYZER_PLT = .my.plt
+$(DIALYZER_PLT):
+	dialyzer --build-plt --output_plt $(DIALYZER_PLT) \
+      --apps kernel stdlib sasl
+```
 
 ### eunit
 
