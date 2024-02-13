@@ -112,6 +112,10 @@ ifdef DESCRIPTION
 _DESCR = {description, \"$(DESCRIPTION)\"},$(newline)$(space)$(space)$(space)
 endif
 
+ifneq ($(wildcard src/$(_APP)_app.erl),)
+_APP_MOD = {mod,{$(_APP)_app,[]}},$(newline)$(space)$(space)$(space)
+endif
+
 ifneq ($(wildcard src/$(_APP).app.src),)
 $(_APP_FILE): src/$(_APP).app.src | ebin
 	sed -e 's;%APP%;$(_APP);'						\
@@ -124,7 +128,7 @@ define _APP_FILE_CONTENTS
 {application,$(call mkatom,$(_APP)),
   [$(_DESCR){vsn,\"$(VERSION)\"},
    {modules,[$(_ERL_MODULE_LIST)]},
-   {registered,[]},
+   $(_APP_MOD){registered,[]},
    {env,[]},
    {applications,[$(_APP_LIST)]}]}.
 endef

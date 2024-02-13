@@ -1,0 +1,8 @@
+[doc test eunit]
+
+[shell test]
+    !make
+    ?SH-PROMPT
+    !cat ebin/mod.app
+    ???{mod,{mod_app,[]}}
+    ?SH-PROMPT

@@ -86,7 +86,6 @@ By default, erl.mk uses erlc's compile server in order to speed up the
 build.  To disable this behaviour, set `ERLC_USE_SERVER = false`
 before including erl.mk.
 
-
 ### The application resource file
 
 When the code is built, erl.mk generates the required application
@@ -111,6 +110,9 @@ variables substituted:
 
 If `src/NAME.app.src` is not found, erl.mk will generate
 `ebin/NAME.app` with default information.
+
+If a file `NAME_app.erl` is found in `src`, it is used as the start
+module in the app file.
 
 ### C source
 
