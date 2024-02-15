@@ -7,7 +7,8 @@
 ###   lux         - run lux tests
 ###   shell       - start an erlang shell with correct paths
 ###   clean       - clean application
-###   distclean   - clean application and dependencies
+###   test-clean  - clean tests
+###   distclean   - clean application, tests and remove dependencies
 ###
 ###   c_src.mk    - generate `c_src.mk` with useful variables
 ###
@@ -49,7 +50,7 @@ all clean:
 	done
 
 .PHONY: distclean
-distclean: clean deps-clean
+distclean: clean test-clean deps-clean
 
 ### Useful variables
 
@@ -151,6 +152,13 @@ test: test-deps
 	  $(MAKE) -C test;							\
 	fi;									\
 
+test-clean: do-test-clean
+
+do-test-clean:
+	$(verbose) if [ -f test/Makefile ]; then				\
+	  $(MAKE) -C test clean;						\
+	fi;									\
+
 _EUNIT_ERL_SOURCES = $(wildcard test/*_tests.erl)
 _EUNIT_ERL_MODULES = $(_EUNIT_ERL_SOURCES:test/%.erl=%)
 _EUNIT_BEAM_FILES = $(_EUNIT_ERL_MODULES:%=test/%.beam)
@@ -201,7 +209,7 @@ lux-build:
 
 test: lux
 
-clean: lux-clean
+test-clean: lux-clean
 
 lux-clean:
 	$(call lux_foreach,clean)
@@ -209,7 +217,9 @@ lux-clean:
 
 define lux_foreach
 set -e;										\
-luxfiles=$$(if [ -d test/lux ]; then lux --mode list test/lux; fi);		\
+lux=$$(which lux || echo $(DEPS_DIR)/lux/bin/lux);				\
+luxfiles=$$(if [ -d test/lux -a -x "$${lux}" ]; 				\
+	    then $${lux} --mode list test/lux; fi);				\
 luxdirs=$$(for d in $${luxfiles}; do echo `dirname $$d`; done | sort -u); 	\
 for d in $${luxdirs}; do							\
   if [ -f $$d/Makefile ]; then							\

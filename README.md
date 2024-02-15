@@ -343,7 +343,8 @@ $ make lux
 ### Custom tests
 
 If there is a file `test/Makefile`, erl.mk will run the `test` target
-in this file when `make test` is called.
+in this file when `make test` is called, and the `clean` target when
+`make test-clean` is called.
 
 ### Starting an erlang shell
 
