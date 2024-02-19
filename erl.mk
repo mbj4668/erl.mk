@@ -109,10 +109,6 @@ _ERL_MODULE_LIST = $(call mkatomlist,$(filter-out $(EXCLUDE_ERL_MODULES),$(ERL_M
 _DEPS_LIST = $(call mkatomlist,$(sort $(DEPS) $(LOCAL_DEPS)))
 _APP_LIST = kernel,stdlib$(if $(_DEPS_LIST),$(comma)$(_DEPS_LIST),)
 
-ifdef DESCRIPTION
-_DESCR = {description, \"$(DESCRIPTION)\"},$(newline)$(space)$(space)$(space)
-endif
-
 ifneq ($(wildcard src/$(_APP)_app.erl),)
 _APP_MOD = {mod,{$(_APP)_app,[]}},$(newline)$(space)$(space)$(space)
 endif
@@ -127,10 +123,10 @@ $(_APP_FILE): src/$(_APP).app.src | ebin
 else
 define _APP_FILE_CONTENTS
 {application,$(call mkatom,$(_APP)),
-  [$(_DESCR){vsn,\"$(VERSION)\"},
+  [{description,\"$(DESCRIPTION)\"},
+   {vsn,\"$(VERSION)\"},
    {modules,[$(_ERL_MODULE_LIST)]},
    $(_APP_MOD){registered,[]},
-   {env,[]},
    {applications,[$(_APP_LIST)]}]}.
 endef
 $(_APP_FILE): | ebin
