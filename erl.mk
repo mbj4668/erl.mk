@@ -164,7 +164,6 @@ test-build-erl: ERLC_OPTS += -DTEST=1
 test-build-erl: $(if $(wildcard ebin/.test),,erl-clean) 			\
 		do-build-erl do-build-erl-tests
 	$(verbose) touch ebin/.test
-	$(verbose) touch ebin/.test
 
 .PHONY: do-build-erl-tests
 do-build-erl-tests: $(_EUNIT_BEAM_FILES)
@@ -230,13 +229,15 @@ DIALYZER_PLT ?= .dialyzer.plt
 # dialyze beam files rather than erl files to easier check generated files
 dialyzer: all $(DIALYZER_PLT)
 	dialyzer --plt $(DIALYZER_PLT) $(DIALYZER_OPTS)				\
-	  $(_PA_OPTS) $(_BEAM_FILES)
+	  $(_PA_OPTS) $(_BEAM_FILES) ||						\
+	if [ $$? -eq 1 ]; then exit 1; fi
 
 _PLT_DEPS_DIRS = $(patsubst %,%/ebin,$(_DEPS_DIRS))
 
 .dialyzer.plt:
 	dialyzer --build_plt --output_plt $(DIALYZER_PLT) $(DIALYZER_PLT_OPTS)	\
-	  --apps erts kernel stdlib $(LOCAL_DEPS) $(_PLT_DEPS_DIRS)
+	  --apps erts kernel stdlib $(LOCAL_DEPS) $(_PLT_DEPS_DIRS) ||		\
+	if [ $$? -eq 1 ]; then exit 1; fi
 
 distclean: dialyzer-plt-clean
 
