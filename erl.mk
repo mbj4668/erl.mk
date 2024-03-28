@@ -182,7 +182,8 @@ else
 _EUNIT_TESTS = fun $(t)/0
 endif
 else
-_EUNIT_TESTS = [$(call mkatomlist,$(sort $(_EUNIT_ERL_MODULES) $(ERL_MODULES)))]
+_EUNIT_EXTRA_MODULES = $(filter-out $(patsubst %,%_tests,$(ERL_MODULES)),$(_EUNIT_ERL_MODULES))
+_EUNIT_TESTS = [$(call mkatomlist,$(ERL_MODULES) $(_EUNIT_EXTRA_MODULES))]
 endif
 
 .PHONY: eunit
