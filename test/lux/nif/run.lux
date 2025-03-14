@@ -1,0 +1,14 @@
+[doc Test that we can build a nif]
+
+[shell test]
+    !env | grep ERL
+    ?SH-PROMPT
+    -[^W][Ee]rror
+    !make
+    ?SH-PROMPT
+    !erl -pa ebin -noinput -run n nonif
+    ?hello from Erlang
+    ?SH-PROMPT
+    !erl -pa ebin -noinput -run n nif
+    ?hello from nif: "Hello world"
+    ?SH-PROMPT

@@ -357,12 +357,12 @@ c_src.mk:
 	printf 'CFLAGS ?= -std=c99 $$(CWARNINGS) $$(CEXTRA_FLAGS)\n' >> $@; \
 	printf 'CFLAGS += -MMD -MP -MF .$$<.d -I$$(ERL_TOP)/usr/include\n' >>$@;\
 	printf '\n' >> $@; \
-	printf 'ifeq ($$(OS), Linux)\n' >> $@; \
-	printf '  LDFLAGS_NIF = -shared\n' >> $@; \
-	printf '  CFLAGS += -fPIC\n' >> $@; \
-	printf 'else ifeq ($$(OS), Darwin)\n' >> $@; \
+	printf 'ifeq ($$(OS), Darwin)\n' >> $@; \
 	printf '  LDFLAGS_NIF = -bundle -undefined dynamic_lookup\n' >> $@; \
 	printf '  CFLAGS += -fPIC -fno-common\n' >> $@; \
+	printf 'else\n' >> $@; \
+	printf '  LDFLAGS_NIF = -shared\n' >> $@; \
+	printf '  CFLAGS += -fPIC\n' >> $@; \
 	printf 'endif\n' >> $@; \
 	printf '\n' >> $@; \
 	printf 'ifneq ($$(MAKECMDGOALS),clean)\n' >> $@; \
