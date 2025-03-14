@@ -367,11 +367,11 @@ c_src.mk:
 	printf '\n' >> $@; \
 	printf 'ifneq ($$(MAKECMDGOALS),clean)\n' >> $@; \
 	printf -- '-include .*.d\n' >> $@; \
-	printf 'endif\n' >> $@
+	printf 'endif\n' >> $@; \
 	printf '\n' >> $@; \
-	printf '# remove ourselves if erl is not the same as it was when we were generated\n' >> $@
-	printf 'ifneq ($$(shell readlink -f `which erl`),$$(ERL))\n' >> $@
-	printf '$$(shell rm -f c_src.mk)\n' >> $@
+	printf '# remove ourselves if erl is not the same as it was when we were generated\n' >> $@; \
+	printf 'ifneq ($$(shell readlink -f `which erl`),$$(ERL))\n' >> $@;\
+	printf '$$(shell rm -f c_src.mk)\n' >> $@; \
 	printf 'endif\n' >> $@
 
 

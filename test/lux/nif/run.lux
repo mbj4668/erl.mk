@@ -1,8 +1,6 @@
 [doc Test that we can build a nif]
 
 [shell test]
-    !env | grep ERL
-    ?SH-PROMPT
     -[^W][Ee]rror
     !make
     ?SH-PROMPT
