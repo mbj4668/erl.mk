@@ -31,7 +31,10 @@
 ### Set `TEST_DEPS` to a space-separated list of test dependencies
 ### Set `DIALYZER_PLT` to use a specific PLT, e.g., to use a custom built PLT
 ### Set `DIALYZER_PLT_OPTS` to pass options to dialyzer when the PLT is built
+### Set `PLT_APPS` to add additional apps to the PLT
 ### Set `DIALYZER_OPTS` to pass options to dialyzer
+### Set `EUNIT_OPTS` to a list of eunit options
+### Set `EUNIT_ERL_OPTS` to add options to `erl` when running eunit tests
 ###
 ### Customization - targets
 ### =======================
@@ -188,8 +191,8 @@ endif
 
 .PHONY: eunit
 eunit: test-build-erl
-	erl $(_PA_OPTS) -pa test -noshell -eval	\
-	'case eunit:test($(_EUNIT_TESTS)) of ok->halt(0);error->halt(2) end'
+	erl $(_PA_OPTS) -pa test -noshell $(EUNIT_ERL_OPTS) -eval		\
+	'case eunit:test($(_EUNIT_TESTS), [$(EUNIT_OPTS)]) of ok->halt(0);error->halt(2) end'
 
 test: eunit
 
@@ -241,8 +244,8 @@ _PLT_DEPS_DIRS = $(patsubst %,%/ebin,$(_DEPS_DIRS))
 
 .dialyzer.plt:
 	dialyzer --build_plt --output_plt $(DIALYZER_PLT) $(DIALYZER_PLT_OPTS)	\
-	  --apps erts kernel stdlib $(LOCAL_DEPS) $(_PLT_DEPS_DIRS) ||		\
-	if [ $$? -eq 1 ]; then exit 1; fi
+	  --apps erts kernel stdlib $(PLT_APPS) $(LOCAL_DEPS) $(_PLT_DEPS_DIRS) \
+	|| if [ $$? -eq 1 ]; then exit 1; fi
 
 distclean: dialyzer-plt-clean
 

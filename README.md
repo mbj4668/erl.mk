@@ -259,7 +259,8 @@ Do `make dialyzer` to run dialyzer over the code base.  Set
 
 erl.mk will first create a PLT with all dependencies and all OTP
 applications used.  Set `DIALYZER_PLT_OPTS` to pass
-additional parameters to dialyzer when the PLT is built.
+additional parameters to dialyzer when the PLT is built, and
+`PLT_APPS` to add additional applications to the PLT.
 
 The variable `DIALYZER_PLT` can be set to override the name of the PLT
 file.  This can be used to do custom build of the PLT, e.g,:
@@ -316,6 +317,17 @@ $ make eunit t=mymod:my_test
 ```
 
 The handling of eunit tests is the same as in erlang.mk.
+
+The variable `EUNIT_OPTS` can be set to a list of options to pass to
+`eunit`, for example:
+
+```
+EUNIT_OPTS = verbose,{print_depth,9999}
+```
+
+The variable `EUNIT_ERL_OPTS` can be set to pass options to `erl` when
+running eunit tests.
+
 
 ### lux
 

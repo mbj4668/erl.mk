@@ -5,6 +5,8 @@
     ?SH-PROMPT
     !make t=a:ok_test eunit
     ?^erlc .*a.erl
+    # match verbose output
+    ?a: ok_test
     ?Test passed.
     ?SH-PROMPT
 
