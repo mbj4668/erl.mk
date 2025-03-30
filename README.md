@@ -1,6 +1,7 @@
 # Makefile for erlang applications
 
-A simpler, smaller and less capable alternative to erlang.mk.
+A simpler, smaller and less capable alternative to erlang.mk, that
+doesn't mess with file modifaction times.
 
 The idea is the same as erlang.mk, i.e., include `erl.mk` in your
 `Makefile` in the top directory of an erlang application, possibly
@@ -149,7 +150,7 @@ SOURCES := $(wildcard *.c)
 OBJS := $(SOURCES:%.c=./%.o)
 
 $(NIF): $(OBJS)
-	$(CC) $(LDFLAGS_NIF) -o $@ $^
+	$(CC) $^ $(LDFLAGS_NIF) -o $@
 
 debug:
 	$(MAKE) DEBUG=true all
@@ -160,13 +161,13 @@ clean:
 
 ### Generated erlang modules
 
-If your application uses generated erlang modules, set `ERL_MODULES`
-to a space-separated list of the names of these modules.  Then add
-rules to generate the erlang source files in the `src` directory, and
-a rule to remove the generated file.
+If your application uses generated erlang modules, set
+`GENERATED_ERL_MODULES` to a space-separated list of the names of
+these modules.  Then add rules to generate the erlang source files in
+the `src` directory.
 
 ```makefile
-ERL_MODULES = my_generated_mod
+GENERATED_ERL_MODULES = my_generated_mod
 
 include erl.mk
 
@@ -174,11 +175,6 @@ include erl.mk
 
 src/my_generated_mod.erl: src/my_generated_mod.in
 	sed -e ... $< > $@
-
-clean: my-clean
-
-my_clean:
-	rm -f src/my_generated_mod.erl
 ```
 
 ### Build-time erlang modules
@@ -201,7 +197,7 @@ different from erlang.mk.
 Add the name of the application to the variable `DEPS` if it is a
 run-time dependency that needs to be fetched and compiled.  Add to
 `LOCAL_DEPS` if it is a run-time dependency that doesn't need to be
-fetched and compiled, e.g., and OTP application.  Add to `TEST_DEPS`
+fetched and compiled, e.g., an OTP application.  Add to `TEST_DEPS`
 if the dependency is used only in tests, and to `BUILD_DEPS` for
 dependencies used only for building the project.
 
@@ -233,11 +229,9 @@ dependency:
    run `autoreconf -if`.
 3. If the package contains a `configure` script, run it.
 4. Build the target `dep_patch_NAME`.
-5. If the package contains a `rebar.config` file, run `rebar3`, else
-   if the package contains a `Makefile`, run `make`.
 
-You can extend the target `dep_patch_NAME::` (after including
-`erl.mk`) with additional commands to run before building the package.
+You can extend the target `dep_patch_NAME::` with additional commands
+to run before building the package.
 
 For example, the following rule patches `mjson` to be built for the
 AtomVM:
@@ -245,6 +239,27 @@ AtomVM:
 ```makefile
 dep_patch_mjson::
 	echo "ERLC_OPTS += -DNO_LISTS_TO_INTEGER_2" >> $(DEPS_DIR)/mjson/Makefile
+```
+
+The following steps are performed when erl.mk builds a dependency:
+
+1. Build the target `dep_build_NAME`.
+2. If the package was built by the target  `dep_build_NAME`, we're done.
+   Else if the package contains a `rebar.config` file, run `rebar3`, else
+   if the package contains a `Makefile`, run `make`, else
+   use `erl.mk` itself to build.
+
+If the package cannot be built using `rebar3` or `make` as described
+above, you can extend the target `dep_build_NAME::` with commands to
+build the package, and then create the file
+`$(DEPS_DIR)/.erl_mk_dep_built_NAME`.
+
+For example, to build `erlfmt` as an escript:
+
+```makefile
+dep_build_erlfmt::
+	( cd $(DEPS_DIR)/erlfmt && make release && touch $(DEPS_DIR)/.erl_mk_dep_built_erlfmt ) \
+	|| exit 1
 ```
 
 ## Tests
@@ -328,7 +343,6 @@ EUNIT_OPTS = verbose,{print_depth,9999}
 The variable `EUNIT_ERL_OPTS` can be set to pass options to `erl` when
 running eunit tests.
 
-
 ### lux
 
 Put all lux files in `test/lux`, or in subdirectories of `test/lux`.
@@ -361,6 +375,91 @@ in this file when `make test` is called, and the `clean` target when
 ### Starting an erlang shell
 
 Do `make shell` to get an erlang shell with correct paths.
+
+# API - i.e., targets defined to be used by user
+
+```
+all         - build everything (default target)
+test        - run tests, if defined
+dialyzer    - run dialyzer
+eunit       - run eunit tests
+lux         - run lux tests
+shell       - start an erlang shell with correct paths
+clean       - clean application
+test-clean  - clean tests
+distclean   - clean application, tests and remove dependencies
+fetch-deps  - fetch dependencies
+build-deps  - build dependencies
+
+c_src.mk    - generate `c_src.mk` with useful variables
+```
+
+## Verbosity
+
+The handling of verbosity is the same as in erlang.mk.
+
+By default, erl.mk prints a short string to indicate how it builds a
+target.
+
+Do `make V=1` to show the full commands, and `make V=2` to get even
+more details.
+
+# Customization - variables
+
+Set `DESCRIPTION` to a short description of the application.
+
+Set `VERSION` to suppress erl.mk's version detection (git) for the
+.app file.
+
+Set `APP_ENV` to an erlang term that goes into the application file's
+`env` field.
+
+Set `SUBDIRS` to add more sub directories for the build and clean
+passes.
+
+Set `ERL_OPTS` to add options to `erl` for `make shell`.
+
+Set `ERLC_OPTS` before including erl.mk to override default options to erlc.
+
+Add to `ERLC_OPTS` after including erl.mk to add to default options to erlc.
+
+Set `REMOVE_ERLC_OPTS` to remove options from `ERLC_OPTS` before calling erlc.
+
+Set `ERLC_USE_SERVER` to `false` to avoid using erlc's compile server.
+
+Set `GENERATED_ERL_MODULES` before including erl.mk to compile
+generated modules.
+
+Set `EXCLUDE_ERL_MODULES` to exclude modules from the `modules` field in the app file.
+
+Set `DEPS` to a space-separated list of run-time dependencies.
+
+Set `LOCAL_DEPS` to a space-separated list of additional run-time
+dependencies (these won't be downloaded).
+
+Set `BUILD_DEPS` to a space-separated list of build dependencies.
+
+Set `TEST_DEPS` to a space-separated list of test dependencies.
+
+Set `DIALYZER_PLT` to use a specific PLT, e.g., to use a custom built PLT.
+
+Set `DIALYZER_PLT_OPTS` to pass options to dialyzer when the PLT is built.
+
+Set `PLT_APPS` to add additional apps to the PLT.
+
+Set `DIALYZER_OPTS` to pass options to dialyzer.
+
+Set `EUNIT_OPTS` to a list of eunit options.
+
+Set `EUNIT_ERL_OPTS` to add options to `erl` when running eunit tests.
+
+# Customization - targets
+
+Add to `all:` to build more.
+
+Add to `clean:` and `distclean` to clean more.
+
+Add to `test:` to test more.
 
 # Why not erlang.mk?
 

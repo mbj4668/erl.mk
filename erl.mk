@@ -1,6 +1,8 @@
+### See https://github.com/mbj4668/erl.mk for documentation
+###
 ### API - i.e., targets defined to be used by user
 ### ==============================================
-###   all         - build everything
+###   all         - build everything including dependencies
 ###   test        - run tests, if defined
 ###   dialyzer    - run dialyzer
 ###   eunit       - run eunit tests
@@ -9,55 +11,29 @@
 ###   clean       - clean application
 ###   test-clean  - clean tests
 ###   distclean   - clean application, tests and remove dependencies
+###   fetch-deps  - fetch dependencies
+###   build-deps  - build dependencies
 ###
 ###   c_src.mk    - generate `c_src.mk` with useful variables
-###
-### Customization - variables
-### =========================
-### Set `DESCRIPTION` to a short description of the application
-### Set `VERSION` to suppress erl.mk's version detection (git) for the .app file
-### Set `SUBDIRS` to add more sub directories for the build and clean passes
-### Set `ERL_OPTS` to add options to `erl` for `make shell`
-### Set `ERLC_OPTS` before including erl.mk to override default options to erlc
-### Add to `ERLC_OPTS` after including erl.mk to add to default options to erlc
-### Set `ERLC_USE_SERVER` to `false` to avoid using erlc' compile server
-### Set `ERL_MODULES` before including erl.mk to compile generated modules
-### Set `EXCLUDE_ERL_MODULES` to exclude modules from the `modules` field in
-###      the app file.
-### Set `DEPS` to a space-separated list of run-time dependencies
-### Set `LOCAL_DEPS` to a space-separated list of additional run-time
-###                  dependencies (these won't be downloaded)
-### Set `BUILD_DEPS` to a space-separated list of build dependencies
-### Set `TEST_DEPS` to a space-separated list of test dependencies
-### Set `DIALYZER_PLT` to use a specific PLT, e.g., to use a custom built PLT
-### Set `DIALYZER_PLT_OPTS` to pass options to dialyzer when the PLT is built
-### Set `PLT_APPS` to add additional apps to the PLT
-### Set `DIALYZER_OPTS` to pass options to dialyzer
-### Set `EUNIT_OPTS` to a list of eunit options
-### Set `EUNIT_ERL_OPTS` to add options to `erl` when running eunit tests
-###
-### Customization - targets
-### =======================
-### Add to `all:` to build more
-### Add to `clean:` and `distclean` to clean more
-### Add to `test:` to test more
 
+.PHONY: all clean distclean
 all: deps
 
-SUBDIRS	+= $(wildcard c_src)
+clean:
 
-.PHONY: all clean
-ifneq ($(SUBDIRS),)
-all clean:
-	$(verbose) for d in $(SUBDIRS) ; do					\
-	  if [ -f $$d/Makefile ]; then						\
-	    $(MAKE) -C $$d $@ || exit 1;					\
-	  fi;									\
-	done
-endif
+distclean: clean
 
-.PHONY: distclean
-distclean: clean test-clean deps-clean
+### Handle sub directories
+
+SUBDIRS	+= $(patsubst %/Makefile,%,$(wildcard c_src/Makefile))
+
+all clean: _subdirs
+
+.PHONY: _subdirs $(SUBDIRS)
+_subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(verbose) $(MAKE) -C $@ $(MAKECMDGOALS)
 
 ### Useful variables
 
@@ -69,6 +45,8 @@ define newline
 
 endef
 
+ERL_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
+
 ### Verbosity
 
 V ?= 0
@@ -77,14 +55,35 @@ verbose_0 = @
 verbose_2 = set -x;
 verbose = $(verbose_$(V))
 
+gen_verbose_0 = @echo " GEN   " $@;
+gen_verbose_2 = set -x;
+gen_verbose = $(gen_verbose_$(V))
+
+erlc_verbose_0 = @echo " ERLC  " $@;
+erlc_verbose_2 = set -x;
+erlc_verbose = $(erlc_verbose_$(V))
+
+app_verbose_0 = @echo " APP   " $@;
+app_verbose_2 = set -x;
+app_verbose = $(app_verbose_$(V))
+
+fetch_verbose_0 = @echo " FETCH " $(notdir $@);
+fetch_verbose_2 = set -x;
+fetch_verbose = $(fetch_verbose_$(V))
+
+dep_verbose_0 = @echo " DEP   " $(notdir $<);
+dep_verbose_2 = set -x;
+dep_verbose = $(dep_verbose_$(V))
+
 ### Erlang
 
 _APP = $(shell basename `pwd`)
 VERSION ?= $(shell git describe --always --tags 2> /dev/null || echo 0.1)
+APP_ENV ?= []
 
 _ERL_SOURCES = $(wildcard src/*.erl)
-ERL_MODULES += $(_ERL_SOURCES:src/%.erl=%)
-_BEAM_FILES = $(ERL_MODULES:%=ebin/%.beam)
+_ERL_MODULES = $(sort $(GENERATED_ERL_MODULES) $(_ERL_SOURCES:src/%.erl=%))
+_BEAM_FILES = $(_ERL_MODULES:%=ebin/%.beam)
 _APP_FILE = ebin/$(_APP).app
 
 _PA_OPTS = $(patsubst %,-pa %/ebin,$(_DEPS_DIRS)) -pa ../$(_APP)/ebin
@@ -101,20 +100,37 @@ all: build-erl
 build-erl: $(if $(wildcard ebin/.test),erl-clean,) do-build-erl
 
 .PHONY: do-build-erl
-do-build-erl: $(_APP_FILE) $(_BEAM_FILES)
+do-build-erl:
 
-clean: erl-clean
+ifneq ($(_ERL_SOURCES),)
+do-build-erl: $(_APP_FILE) $(_BEAM_FILES)
+endif
+
+clean: erl-clean ebin-clean
 
 .PHONY: erl-clean
 erl-clean:
-	rm -rf ebin .*.d ebin/.test test/*.beam
+	$(gen_verbose) rm -rf ebin/.test .*.d ebin/*.beam ebin/*.app test/*.beam \
+	               $(GENERATED_ERL_MODULES)
+
+ebin-clean:
+	$(gen_verbose) rm -rf ebin
+
+
 
 ebin/%.beam: src/%.erl | ebin
-	erlc $(ERLC_OPTS) -o ebin $<
+	$(erlc_verbose) erlc $(filter-out $(REMOVE_ERLC_OPTS),$(ERLC_OPTS)) -o ebin $<
 
-_ERL_MODULE_LIST = $(call mkatomlist,$(filter-out $(EXCLUDE_ERL_MODULES),$(ERL_MODULES)))
+_ERL_MODULE_LIST = $(call mkatomlist,$(filter-out $(EXCLUDE_ERL_MODULES),$(_ERL_MODULES)))
 _DEPS_LIST = $(call mkatomlist,$(sort $(DEPS) $(LOCAL_DEPS)))
 _APP_LIST = kernel,stdlib$(if $(_DEPS_LIST),$(comma)$(_DEPS_LIST),)
+
+ifeq ($(ERL_LIBS),)
+	ERL_LIBS = $(DEPS_DIR)
+else
+	ERL_LIBS := $(ERL_LIBS):$(DEPS_DIR)
+endif
+export ERL_LIBS
 
 ifneq ($(wildcard src/$(_APP)_app.erl),)
 _APP_MOD = {mod,{$(_APP)_app,[]}},$(newline)$(space)$(space)$(space)
@@ -122,10 +138,11 @@ endif
 
 ifneq ($(wildcard src/$(_APP).app.src),)
 $(_APP_FILE): src/$(_APP).app.src | ebin
-	sed -e 's;%APP%;$(_APP);'						\
-	    -e 's;%VSN%;"$(VERSION)";'						\
-	    -e 's;%DESCRIPTION%;"$(DESCRIPTION)";'				\
-	    -e 's;%APPLICATIONS%;$(_APP_LIST);'					\
+	$(app_verbose) sed -e 's;%APP%;$(_APP);'						\
+	    -e 's;%VSN%;"$(VERSION)";'								\
+	    -e 's;%DESCRIPTION%;"$(DESCRIPTION)";'						\
+	    -e 's;%APPLICATIONS%;$(_APP_LIST);'							\
+	    -e 's;%APP_ENV%;$(APP_ENV);'							\
 	    -e 's;%MODULES%;$(_ERL_MODULE_LIST);' $< > $@
 else
 define _APP_FILE_CONTENTS
@@ -134,14 +151,16 @@ define _APP_FILE_CONTENTS
    {vsn,\"$(VERSION)\"},
    {modules,[$(_ERL_MODULE_LIST)]},
    $(_APP_MOD){registered,[]},
+   {env, $(subst ",\",$(APP_ENV))},
    {applications,[$(_APP_LIST)]}]}.
 endef
+# "
 $(_APP_FILE): | ebin
-	printf "$(subst $(newline),\n,$(_APP_FILE_CONTENTS))\n" > $@
+	$(app_verbose) printf "$(subst $(newline),\n,$(_APP_FILE_CONTENTS))\n" > $@
 endif
 
 ebin:
-	mkdir $@
+	$(gen_verbose) mkdir $@
 
 ifneq ($(MAKECMDGOALS),clean)
 -include .*.d
@@ -151,16 +170,20 @@ endif
 
 .PHONY: test
 test: test-deps
-	$(verbose) if [ -f test/Makefile ]; then				\
-	  $(MAKE) -C test;							\
-	fi;									\
+	$(verbose) if [ -f test/Makefile ]; then						\
+	  $(MAKE) -C test;									\
+	fi;											\
 
+distclean: test-clean
+
+.PHONY: test-clean
 test-clean: do-test-clean
 
+.PHONY: do-test-clean
 do-test-clean:
-	$(verbose) if [ -f test/Makefile ]; then				\
-	  $(MAKE) -C test clean;						\
-	fi;									\
+	$(verbose) if [ -f test/Makefile ]; then						\
+	  $(MAKE) -C test clean;								\
+	fi;											\
 
 _EUNIT_ERL_SOURCES = $(wildcard test/*_tests.erl)
 _EUNIT_ERL_MODULES = $(_EUNIT_ERL_SOURCES:test/%.erl=%)
@@ -168,15 +191,15 @@ _EUNIT_BEAM_FILES = $(_EUNIT_ERL_MODULES:%=test/%.beam)
 
 .PHONY: test-build-erl
 test-build-erl: ERLC_OPTS += -DTEST=1
-test-build-erl: $(if $(wildcard ebin/.test),,erl-clean) 			\
-		do-build-erl do-build-erl-tests
+test-build-erl: REMOVE_ERLC_OPTS += -Werror
+test-build-erl: $(if $(wildcard ebin/.test),,erl-clean) do-build-erl do-build-erl-tests
 	$(verbose) touch ebin/.test
 
 .PHONY: do-build-erl-tests
 do-build-erl-tests: $(_EUNIT_BEAM_FILES)
 
 test/%.beam: test/%.erl
-	erlc $(ERLC_OPTS) -o test $<
+	$(erlc_verbose) erlc $(filter-out $(REMOVE_ERLC_OPTS),$(ERLC_OPTS)) -o test $<
 
 ifdef t
 ifeq (,$(findstring :,$(t)))
@@ -185,26 +208,26 @@ else
 _EUNIT_TESTS = fun $(t)/0
 endif
 else
-_EUNIT_EXTRA_MODULES = $(filter-out $(patsubst %,%_tests,$(ERL_MODULES)),$(_EUNIT_ERL_MODULES))
-_EUNIT_TESTS = [$(call mkatomlist,$(ERL_MODULES) $(_EUNIT_EXTRA_MODULES))]
+_EUNIT_EXTRA_MODULES = $(filter-out $(patsubst %,%_tests,$(_ERL_MODULES)),$(_EUNIT_ERL_MODULES))
+_EUNIT_TESTS = [$(call mkatomlist,$(_ERL_MODULES) $(_EUNIT_EXTRA_MODULES))]
 endif
 
 .PHONY: eunit
-eunit: test-build-erl
-	erl $(_PA_OPTS) -pa test -noshell $(EUNIT_ERL_OPTS) -eval		\
-	'case eunit:test($(_EUNIT_TESTS), [$(EUNIT_OPTS)]) of ok->halt(0);error->halt(2) end'
+eunit: test-build-erl test-deps
+	$(verbose) erl $(_PA_OPTS) -pa test -noshell $(EUNIT_ERL_OPTS) -eval			\
+	"case eunit:test($(_EUNIT_TESTS), [$(EUNIT_OPTS)]) of ok->halt(0);error->halt(2) end"
 
 test: eunit
 
-.PHONY: lux lux-clean lux-build
+.PHONY: lux lux-build lux-clean
 lux: do-build-erl test-deps lux-build
-	$(verbose) set -e;							\
-	if [ -d test/lux ]; then						\
-	  if [ -f $(DEPS_DIR)/lux/bin/lux ]; then				\
-	    $(DEPS_DIR)/lux/bin/lux test/lux;					\
-	  else									\
-	    lux test/lux;							\
-	  fi									\
+	$(verbose) set -e;									\
+	if [ -d test/lux ]; then								\
+	  if [ -f $(DEPS_DIR)/lux/bin/lux ]; then						\
+	    $(DEPS_DIR)/lux/bin/lux $(LUX_OPTS) test/lux;					\
+	  else											\
+	    lux $(LUX_OPTS) test/lux;								\
+	  fi											\
 	fi
 
 lux-build:
@@ -216,35 +239,35 @@ test-clean: lux-clean
 
 lux-clean:
 	$(call lux_foreach,clean)
-	rm -rf lux_logs
+	$(verbose) rm -rf lux_logs
 
 define lux_foreach
-set -e;										\
-lux=$$(which lux || echo $(DEPS_DIR)/lux/bin/lux);				\
-luxfiles=$$(if [ -d test/lux -a -x "$${lux}" ]; 				\
-	    then $${lux} --mode list test/lux; fi);				\
-luxdirs=$$(for d in $${luxfiles}; do echo `dirname $$d`; done | sort -u); 	\
-for d in $${luxdirs}; do							\
-  if [ -f $$d/Makefile ]; then							\
-    $(MAKE) -C $$d $1;								\
-  fi;										\
+set -e;												\
+lux=$$(which lux || echo $(DEPS_DIR)/lux/bin/lux);						\
+luxfiles=$$(if [ -d test/lux -a -x "$${lux}" ]; 						\
+	    then $${lux} --mode list test/lux; fi);						\
+luxdirs=$$(for d in $${luxfiles}; do echo `dirname $$d`; done | sort -u); 			\
+for d in $${luxdirs}; do									\
+  if [ -f $$d/Makefile ]; then									\
+    $(MAKE) -C $$d $1;										\
+  fi;												\
  done
 endef
 
 DIALYZER_PLT ?= .dialyzer.plt
 
-.PHONY: dialyzer
+.PHONY: dialyzer dialyzer-plt-clean
 # dialyze beam files rather than erl files to easier check generated files
 dialyzer: all $(DIALYZER_PLT)
-	dialyzer --plt $(DIALYZER_PLT) $(DIALYZER_OPTS)				\
-	  $(_PA_OPTS) $(_BEAM_FILES) ||						\
+	$(verbose) dialyzer --plt $(DIALYZER_PLT) $(DIALYZER_OPTS)				\
+	  $(_PA_OPTS) $(_BEAM_FILES) ||								\
 	if [ $$? -eq 1 ]; then exit 1; fi
 
 _PLT_DEPS_DIRS = $(patsubst %,%/ebin,$(_DEPS_DIRS))
 
-.dialyzer.plt:
-	dialyzer --build_plt --output_plt $(DIALYZER_PLT) $(DIALYZER_PLT_OPTS)	\
-	  --apps erts kernel stdlib $(PLT_APPS) $(LOCAL_DEPS) $(_PLT_DEPS_DIRS) \
+$(DIALYZER_PLT):
+	$(gen_verbose) dialyzer --build_plt --output_plt $@ $(DIALYZER_PLT_OPTS)		\
+	  --apps erts kernel stdlib $(PLT_APPS) $(LOCAL_DEPS) $(_PLT_DEPS_DIRS) 		\
 	|| if [ $$? -eq 1 ]; then exit 1; fi
 
 distclean: dialyzer-plt-clean
@@ -254,7 +277,7 @@ dialyzer-plt-clean:
 
 .PHONY: shell
 shell:
-	erl $(ERL_OPTS) $(_PA_OPTS)
+	erl $(_PA_OPTS)
 
 ### External dependency handling
 
@@ -264,7 +287,7 @@ export DEPS_DIR
 
 # automatically add lux as a test dependency if needed
 ifneq ($(wildcard test/lux),) # are there any lux tests?
-ifeq ($(shell which lux),)    # is lux present in the PATH?
+ifeq ($(shell which lux),) # is lux present in the PATH or set properly?
 _ALL_TEST_DEPS = $(sort $(TEST_DEPS) lux) # add lux if not present in TEST_DEPS
 ifndef dep_lux
 dep_lux = git https://github.com/hawk/lux
@@ -277,68 +300,103 @@ _DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(DEPS))
 _BUILD_DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(BUILD_DEPS))
 _TEST_DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(_ALL_TEST_DEPS))
 
-.PHONY: deps
-deps: $(_DEPS_DIRS) $(_BUILD_DEPS_DIRS)
+_DEPS_BUILT = $(patsubst %,$(DEPS_DIR)/.erl_mk_dep_built_%,$(DEPS))
+_BUILD_DEPS_BUILT = $(patsubst %,$(DEPS_DIR)/.erl_mk_dep_built_%,$(BUILD_DEPS))
+_TEST_DEPS_BUILT = $(patsubst %,$(DEPS_DIR)/.erl_mk_dep_built_%,$(_ALL_TEST_DEPS))
 
-.PHONY: test-deps
-test-deps: $(_TEST_DEPS_DIRS)
+.PHONY: deps fetch-deps build-deps
+deps: fetch-deps build-deps
+
+fetch-deps: $(_DEPS_DIRS) $(_BUILD_DEPS_DIRS)
+
+build-deps: $(_DEPS_BUILT) $(_BUILD_DEPS_BUILT)
+
+.PHONY: test-deps fetch-test-deps build-test-deps
+test-deps: fetch-test-deps build-test-deps
+
+fetch-test-deps: $(_TEST_DEPS_DIRS)
+
+build-test-deps: $(_TEST_DEPS_BUILT)
 
 # A dependency is not rebuilt once it has been installed.
 # To force a rebuild, first remove `deps/NAME`, then run `make`.
 $(DEPS_DIR)/%:
-	mkdir -p $(DEPS_DIR)
+	$(fetch_verbose) mkdir -p $(DEPS_DIR)
 	$(call dep_fetch_$(word 1, $(dep_$(notdir $@))),$(notdir $@))
-	if [ -f $@/configure.ac -o -f $@/configure.in ]; then			\
-	  ( cd $@ && autoreconf -if )						\
-	fi;									\
-	if [ -f $@/configure ]; then						\
-	    ( cd $@ && ./configure)						\
-	fi;									\
-	$(MAKE) dep_patch_$(notdir $@); 					\
-	if [ -f $@/rebar.config ]; then						\
-	    ( cd $@ && rebar3 compile ) || exit 1;				\
-	    if [ ! -d $@/ebin ]; then						\
-	      ln -s _build/default/lib/$(notdir $@)/ebin $@/ebin;		\
-	    fi;									\
-	else									\
-	    if [ -f $@/Makefile ]; then						\
-	        ( cd $@ && env ERLC_OPTS=+debug_info $(MAKE) ) || exit 1;	\
-	    fi;									\
-	fi
+	$(verbose) rm -f $(DEPS_DIR)/.erl_mk_dep_built_$(notdir $@);				\
+	if [ -f $@/configure.ac -o -f $@/configure.in ]; then	 				\
+	  ( cd $@ && autoreconf -if )								\
+	fi;											\
+	if [ -f $@/configure ]; then								\
+	    ( cd $@ && ./configure )								\
+	fi;											\
+	$(MAKE) dep_patch_$(notdir $@)
+
+$(DEPS_DIR)/.erl_mk_dep_built_%: $(DEPS_DIR)/%
+	$(dep_verbose) $(MAKE) dep_build_$(notdir $<);						\
+	if [ -f $@ ]; then									\
+	    :;											\
+	elif [ -f $</rebar.config -a ! \( -f $</erlang.mk -a -f $</Makefile \) ]; then		\
+	    if [ ! -h $</ebin ]; then								\
+	      ( cd $< && rebar3 compile ) || exit 1;						\
+	    fi;											\
+	    if [ ! -d $</ebin ]; then								\
+	      ln -s $</_build/default/lib/$(notdir $<)/ebin $</ebin;				\
+	    fi;											\
+	    if [ ! -d $</priv -a -d $</_build/default/lib/$(notdir $<)/priv ]; then		\
+	      ln -s $</_build/default/lib/$(notdir $<)/priv $</priv;				\
+	    fi;											\
+	    for d in $</_build/default/lib/*; do						\
+	      dep=`basename $$d`;								\
+	      if [ -d $$d/ebin -a ! -d $(DEPS_DIR)/$$dep ]; then				\
+	        ln -s $$d $(DEPS_DIR)/$$dep;							\
+	      fi;										\
+	    done;										\
+	elif [ -f $</Makefile ]; then								\
+	    ( cd $< && env ERLC_OPTS=+debug_info $(MAKE) ) || exit 1;				\
+	elif [ -d $</src ]; then								\
+	    ( cd $< && env ERLC_OPTS=+debug_info $(MAKE) -f $(ERL_MK_FILENAME) ) || exit 1;	\
+	fi;											\
+	touch $@
 
 dep_patch_%::
 	@:
+
+dep_build_%::
+	@:
+
+distclean: deps-clean
 
 .PHONY: deps-clean
 deps-clean:
 	rm -rf $(DEPS_DIR)
 
 define dep_fetch_git
-	git clone -q -n $(word 2,$(dep_$1)) $(DEPS_DIR)/$1;			\
-	(cd $(DEPS_DIR)/$(1) &&							\
-	  git checkout -q $(if $(word 3,$(dep_$1)),				\
-	                       $(word 3,$(dep_$1)),				\
+	$(verbose) git clone -q -n $(word 2,$(dep_$1)) $(DEPS_DIR)/$1;				\
+	(cd $(DEPS_DIR)/$(1) &&									\
+	  git checkout -q $(if $(word 3,$(dep_$1)),						\
+	                       $(word 3,$(dep_$1)),						\
 	                       HEAD));
 endef
 
 define dep_fetch_hex
-	mkdir $(DEPS_DIR)/$1;							\
-	curl -s https://repo.hex.pm/tarballs/$1-$(word 2,$(dep_$1)).tar |	\
+	$(verbose) mkdir $(DEPS_DIR)/$1;							\
+	curl -s https://repo.hex.pm/tarballs/$1-$(word 2,$(dep_$1)).tar |			\
 	tar -xO contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzm;
 endef
 
 define dep_fetch_ln
-	ln -s $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
+	$(verbose) ln -s $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
 endef
 
 define dep_fetch_cp
-	cp -R $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
+	$(verbose) cp -R $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
 endef
 
 ### C source
 
 c_src.mk:
-	$(verbose) printf '# Generated by erl.mk\n\n' > $@; \
+	$(gen_verbose) printf '# Generated by erl.mk\n\n' > $@; \
 	printf "ERL = $$(readlink -f `which erl`)\n" >> $@; \
 	printf 'ERTS_INCLUDE_DIR = $(shell erl -noshell -eval "io:format(\"~s/erts-~s/include\", [code:root_dir(), erlang:system_info(version)]), halt()")\n' >> $@; \
 	printf 'OS = $$(shell uname -s)\n' >> $@; \
@@ -372,11 +430,10 @@ c_src.mk:
 	printf -- '-include .*.d\n' >> $@; \
 	printf 'endif\n' >> $@; \
 	printf '\n' >> $@; \
-	printf '# remove ourselves if erl is not the same as it was when we were generated\n' >> $@; \
+	printf '# remove ourselves if erl is not the same as when we were generated\n' >> $@; \
 	printf 'ifneq ($$(shell readlink -f `which erl`),$$(ERL))\n' >> $@;\
 	printf '$$(shell rm -f c_src.mk)\n' >> $@; \
 	printf 'endif\n' >> $@
-
 
 ### Helpers
 
@@ -385,8 +442,8 @@ c_src.mk:
 # which is 100% correct, but slow.
 # Current function is not perfect, but good enough.
 define mkatom
-$(shell echo $1 | awk "/[a-z]([a-z][A-Z][0-9]_@)*/ {print $$1; next} \
-                       {print \"'\" $$1 \"'\"}")
+$(shell echo $1 | awk "/^[a-z][a-zA-Z0-9_@]*$$/ {print \$$1 ; next} \
+                       {printf \"'%s'\", \$$1 }")
 endef
 
 define mkatomlist

@@ -12,7 +12,7 @@ OBJS := $(SOURCES:%.c=./%.o)
 
 $(NIF): $(OBJS)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS_NIF) -o $@ $^ $(LIBS)
+	$(CC) $^ $(LIBS) $(LDFLAGS_NIF) -o $@
 
 clean:
 	rm -f $(NIF) ./*.o
