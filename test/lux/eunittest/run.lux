@@ -3,7 +3,7 @@
 [shell test]
     !make
     ?SH-PROMPT
-    !make t=a:ok_test eunit
+    !V=1 make t=a:ok_test eunit
     ?^erlc .*a.erl
     # match verbose output
     ?a: ok_test
@@ -11,7 +11,7 @@
     ?SH-PROMPT
 
     # ensure we don't rebuid
-    !make t=a:ok_test eunit
+    !V=1 make t=a:ok_test eunit
     -erlc
     ?Test passed.
     ?SH-PROMPT
