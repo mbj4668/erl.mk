@@ -67,7 +67,7 @@ app_verbose_0 = @echo " APP   " $@;
 app_verbose_2 = set -x;
 app_verbose = $(app_verbose_$(V))
 
-fetch_verbose_0 = @echo " FETCH " $(notdir $@);
+fetch_verbose_0 = @echo " FETCH " $(notdir $@) "($(call get_dep_version,$(notdir $@)))";
 fetch_verbose_2 = set -x;
 fetch_verbose = $(fetch_verbose_$(V))
 
@@ -322,7 +322,7 @@ build-test-deps: $(_TEST_DEPS_BUILT)
 # To force a rebuild, first remove `deps/NAME`, then run `make`.
 $(DEPS_DIR)/%:
 	$(fetch_verbose) mkdir -p $(DEPS_DIR)
-	$(call dep_fetch_$(word 1, $(dep_$(notdir $@))),$(notdir $@))
+	$(call dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@))
 	$(verbose) rm -f $(DEPS_DIR)/.erl_mk_dep_built_$(notdir $@);				\
 	if [ -f $@/configure.ac -o -f $@/configure.in ]; then	 				\
 	  ( cd $@ && autoreconf -if )								\
@@ -373,15 +373,12 @@ deps-clean:
 
 define dep_fetch_git
 	$(verbose) git clone -q -n $(word 2,$(dep_$1)) $(DEPS_DIR)/$1;				\
-	(cd $(DEPS_DIR)/$(1) &&									\
-	  git checkout -q $(if $(word 3,$(dep_$1)),						\
-	                       $(word 3,$(dep_$1)),						\
-	                       HEAD));
+	(cd $(DEPS_DIR)/$(1) && git checkout -q $(call get_dep_version_git,$1));
 endef
 
 define dep_fetch_hex
 	$(verbose) mkdir $(DEPS_DIR)/$1;							\
-	curl -s https://repo.hex.pm/tarballs/$1-$(word 2,$(dep_$1)).tar |			\
+	curl -s https://repo.hex.pm/tarballs/$1-$(call get_dep_version_hex,$1).tar |		\
 	tar -xO contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzm;
 endef
 
@@ -392,6 +389,14 @@ endef
 define dep_fetch_cp
 	$(verbose) cp -R $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
 endef
+
+get_dep_method = $(word 1,$(dep_$1))
+
+get_dep_version = $(call get_dep_version_$(call get_dep_method,$1),$1)
+get_dep_version_git = $(if $(word 3,$(dep_$1)),$(word 3,$(dep_$1)),HEAD)
+get_dep_version_hex = $(word 2,$(dep_$1))
+get_dep_version_cp = -
+get_dep_version_ln = -
 
 ### C source
 
