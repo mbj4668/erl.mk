@@ -16,6 +16,8 @@
 ###
 ###   c_src.mk    - generate `c_src.mk` with useful variables
 
+.DELETE_ON_ERROR:
+
 .PHONY: all clean distclean
 all: deps
 
@@ -71,7 +73,7 @@ fetch_verbose_0 = @echo " FETCH " $(notdir $@) "($(call get_dep_version,$(notdir
 fetch_verbose_2 = set -x;
 fetch_verbose = $(fetch_verbose_$(V))
 
-dep_verbose_0 = @echo " DEP   " $(notdir $<);
+dep_verbose_0 = @echo " DEP   " $(notdir $@);
 dep_verbose_2 = set -x;
 dep_verbose = $(dep_verbose_$(V))
 
@@ -110,13 +112,10 @@ clean: erl-clean ebin-clean
 
 .PHONY: erl-clean
 erl-clean:
-	$(gen_verbose) rm -rf ebin/.test .*.d ebin/*.beam ebin/*.app test/*.beam \
-	               $(GENERATED_ERL_MODULES)
+	$(verbose) rm -rf ebin/.test .*.d ebin/*.beam ebin/*.app test/*.beam $(GENERATED_ERL_MODULES)
 
 ebin-clean:
-	$(gen_verbose) rm -rf ebin
-
-
+	$(verbose) rm -rf ebin
 
 ebin/%.beam: src/%.erl | ebin
 	$(erlc_verbose) erlc $(filter-out $(REMOVE_ERLC_OPTS),$(ERLC_OPTS)) -o ebin $<
@@ -246,10 +245,10 @@ set -e;												\
 lux=$$(which lux || echo $(DEPS_DIR)/lux/bin/lux);						\
 luxfiles=$$(if [ -d test/lux -a -x "$${lux}" ]; 						\
 	    then $${lux} --mode list test/lux; fi);						\
-luxdirs=$$(for d in $${luxfiles}; do echo `dirname $$d`; done | sort -u); 			\
+luxdirs=$$(for d in $${luxfiles}; do echo `dirname $${d}`; done | sort -u); 			\
 for d in $${luxdirs}; do									\
-  if [ -f $$d/Makefile ]; then									\
-    $(MAKE) -C $$d $1;										\
+  if [ -f $${d}/Makefile ]; then								\
+    $(MAKE) -C $${d} $1;									\
   fi;												\
  done
 endef
@@ -285,6 +284,8 @@ shell:
 DEPS_DIR ?= $(CURDIR)/deps
 export DEPS_DIR
 
+_DEPS_BUILT_DIR = $(DEPS_DIR)/.erl.mk/built
+
 # automatically add lux as a test dependency if needed
 ifneq ($(wildcard test/lux),) # are there any lux tests?
 ifeq ($(shell which lux),) # is lux present in the PATH or set properly?
@@ -300,40 +301,35 @@ _DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(DEPS))
 _BUILD_DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(BUILD_DEPS))
 _TEST_DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(_ALL_TEST_DEPS))
 
-_DEPS_BUILT = $(patsubst %,$(DEPS_DIR)/.erl_mk_dep_built_%,$(DEPS))
-_BUILD_DEPS_BUILT = $(patsubst %,$(DEPS_DIR)/.erl_mk_dep_built_%,$(BUILD_DEPS))
-_TEST_DEPS_BUILT = $(patsubst %,$(DEPS_DIR)/.erl_mk_dep_built_%,$(_ALL_TEST_DEPS))
+_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(DEPS))
+_BUILD_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(BUILD_DEPS))
+_TEST_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(_ALL_TEST_DEPS))
 
 .PHONY: deps fetch-deps build-deps
 deps: fetch-deps build-deps
-
 fetch-deps: $(_DEPS_DIRS) $(_BUILD_DEPS_DIRS)
-
 build-deps: $(_DEPS_BUILT) $(_BUILD_DEPS_BUILT)
 
 .PHONY: test-deps fetch-test-deps build-test-deps
 test-deps: fetch-test-deps build-test-deps
-
 fetch-test-deps: $(_TEST_DEPS_DIRS)
-
 build-test-deps: $(_TEST_DEPS_BUILT)
 
-# A dependency is not rebuilt once it has been installed.
-# To force a rebuild, first remove `deps/NAME`, then run `make`.
 $(DEPS_DIR)/%:
-	$(fetch_verbose) mkdir -p $(DEPS_DIR)
-	$(call dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@))
-	$(verbose) rm -f $(DEPS_DIR)/.erl_mk_dep_built_$(notdir $@);				\
-	if [ -f $@/configure.ac -o -f $@/configure.in ]; then	 				\
+	$(fetch_verbose) mkdir -p $(DEPS_DIR);							\
+	$(call dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@))			\
+	rm -f $(_DEPS_BUILT_DIR)/$(notdir $@);							\
+	if [ -f $@/configure.ac -o -f $@/configure.in ]; then					\
 	  ( cd $@ && autoreconf -if )								\
 	fi;											\
 	if [ -f $@/configure ]; then								\
-	    ( cd $@ && ./configure )								\
+	  ( cd $@ && ./configure )								\
 	fi;											\
 	$(MAKE) dep_patch_$(notdir $@)
 
-$(DEPS_DIR)/.erl_mk_dep_built_%: $(DEPS_DIR)/%
-	$(dep_verbose) $(MAKE) dep_build_$(notdir $<);						\
+$(_DEPS_BUILT_DIR)/%: $(DEPS_DIR)/%
+	$(dep_verbose) mkdir -p $(_DEPS_BUILT_DIR);						\
+	$(MAKE) dep_build_$(notdir $<) || exit 1;						\
 	if [ -f $@ ]; then									\
 	    :;											\
 	elif [ -f $</rebar.config -a ! \( -f $</erlang.mk -a -f $</Makefile \) ]; then		\
@@ -346,10 +342,10 @@ $(DEPS_DIR)/.erl_mk_dep_built_%: $(DEPS_DIR)/%
 	    if [ ! -d $</priv -a -d $</_build/default/lib/$(notdir $<)/priv ]; then		\
 	      ln -s $</_build/default/lib/$(notdir $<)/priv $</priv;				\
 	    fi;											\
-	    for d in $</_build/default/lib/*; do						\
-	      dep=`basename $$d`;								\
-	      if [ -d $$d/ebin -a ! -d $(DEPS_DIR)/$$dep ]; then				\
-	        ln -s $$d $(DEPS_DIR)/$$dep;							\
+	    for e in $</_build/default/lib/*; do				 		\
+	      edep=`basename $${e}`;								\
+	      if [ -d $${e}/ebin -a ! -d $(DEPS_DIR)/$${edep} ]; then				\
+	        ln -s $${e} $(DEPS_DIR)/$${edep};						\
 	      fi;										\
 	    done;										\
 	elif [ -f $</Makefile ]; then								\
@@ -372,22 +368,22 @@ deps-clean:
 	rm -rf $(DEPS_DIR)
 
 define dep_fetch_git
-	$(verbose) git clone -q -n $(word 2,$(dep_$1)) $(DEPS_DIR)/$1;				\
+	git clone -q -n $(word 2,$(dep_$1)) $(DEPS_DIR)/$1;					\
 	(cd $(DEPS_DIR)/$(1) && git checkout -q $(call get_dep_version_git,$1));
 endef
 
 define dep_fetch_hex
-	$(verbose) mkdir $(DEPS_DIR)/$1;							\
+	mkdir $(DEPS_DIR)/$1;									\
 	curl -s https://repo.hex.pm/tarballs/$1-$(call get_dep_version_hex,$1).tar |		\
 	tar -xO contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzm;
 endef
 
 define dep_fetch_ln
-	$(verbose) ln -s $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
+	ln -s $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
 endef
 
 define dep_fetch_cp
-	$(verbose) cp -R $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
+	cp -R $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
 endef
 
 get_dep_method = $(word 1,$(dep_$1))

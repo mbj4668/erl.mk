@@ -1,7 +1,7 @@
 # Makefile for erlang applications
 
 A simpler, smaller and less capable alternative to erlang.mk, that
-doesn't mess with file modifaction times.
+doesn't mess with file modification times.
 
 The idea is the same as erlang.mk, i.e., include `erl.mk` in your
 `Makefile` in the top directory of an erlang application, possibly
@@ -84,7 +84,7 @@ Then simply run `make` again to download and build the dependency.
 ## Build
 
 By default, erl.mk uses erlc's compile server in order to speed up the
-build.  To disable this behaviour, set `ERLC_USE_SERVER = false`
+build.  To disable this behavior, set `ERLC_USE_SERVER = false`
 before including erl.mk.
 
 ### The application resource file
@@ -261,6 +261,11 @@ dep_build_erlfmt::
 	( cd $(DEPS_DIR)/erlfmt && make release && touch $(DEPS_DIR)/.erl_mk_dep_built_erlfmt ) \
 	|| exit 1
 ```
+
+### Updating dependencies
+
+If a dependency needs to be updated to a new version, update the
+`dep_NAME` variable in your `Makefile`, and remove `deps/dep_NAME`.
 
 ## Tests
 
@@ -465,4 +470,5 @@ Add to `test:` to test more.
 
 The biggest drawback with erlang.mk is that it messes with the
 modification time of source files.  In order to avoid this, erl.mk
-uses plain make dependency tracking.
+uses plain make dependency tracking.  erl.mk is also generally faster
+than erlang.mk.
