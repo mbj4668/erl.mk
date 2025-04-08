@@ -252,13 +252,13 @@ The following steps are performed when erl.mk builds a dependency:
 If the package cannot be built using `rebar3` or `make` as described
 above, you can extend the target `dep_build_NAME::` with commands to
 build the package, and then create the file
-`$(DEPS_DIR)/.erl_mk_dep_built_NAME`.
+`$(DEPS_BUILT_DIR)/NAME`.
 
 For example, to build `erlfmt` as an escript:
 
 ```makefile
 dep_build_erlfmt::
-	( cd $(DEPS_DIR)/erlfmt && make release && touch $(DEPS_DIR)/.erl_mk_dep_built_erlfmt ) \
+	( cd $(DEPS_DIR)/erlfmt && make release && touch $(DEPS_BUILT_DIR)/erlfmt ) \
 	|| exit 1
 ```
 

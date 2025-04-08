@@ -284,7 +284,7 @@ shell:
 DEPS_DIR ?= $(CURDIR)/deps
 export DEPS_DIR
 
-_DEPS_BUILT_DIR = $(DEPS_DIR)/.erl.mk/built
+DEPS_BUILT_DIR = $(DEPS_DIR)/.erl.mk/built
 
 # automatically add lux as a test dependency if needed
 ifneq ($(wildcard test/lux),) # are there any lux tests?
@@ -301,9 +301,9 @@ _DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(DEPS))
 _BUILD_DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(BUILD_DEPS))
 _TEST_DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(_ALL_TEST_DEPS))
 
-_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(DEPS))
-_BUILD_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(BUILD_DEPS))
-_TEST_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(_ALL_TEST_DEPS))
+_DEPS_BUILT = $(patsubst %,$(DEPS_BUILT_DIR)/%,$(DEPS))
+_BUILD_DEPS_BUILT = $(patsubst %,$(DEPS_BUILT_DIR)/%,$(BUILD_DEPS))
+_TEST_DEPS_BUILT = $(patsubst %,$(DEPS_BUILT_DIR)/%,$(_ALL_TEST_DEPS))
 
 .PHONY: deps fetch-deps build-deps
 deps: fetch-deps build-deps
@@ -318,7 +318,7 @@ build-test-deps: $(_TEST_DEPS_BUILT)
 $(DEPS_DIR)/%:
 	$(fetch_verbose) mkdir -p $(DEPS_DIR);							\
 	$(call dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@))			\
-	rm -f $(_DEPS_BUILT_DIR)/$(notdir $@);							\
+	rm -f $(DEPS_BUILT_DIR)/$(notdir $@);							\
 	if [ -f $@/configure.ac -o -f $@/configure.in ]; then					\
 	  ( cd $@ && autoreconf -if )								\
 	fi;											\
@@ -327,8 +327,8 @@ $(DEPS_DIR)/%:
 	fi;											\
 	$(MAKE) dep_patch_$(notdir $@)
 
-$(_DEPS_BUILT_DIR)/%: $(DEPS_DIR)/%
-	$(dep_verbose) mkdir -p $(_DEPS_BUILT_DIR);						\
+$(DEPS_BUILT_DIR)/%: $(DEPS_DIR)/%
+	$(dep_verbose) mkdir -p $(DEPS_BUILT_DIR);						\
 	$(MAKE) dep_build_$(notdir $<) || exit 1;						\
 	if [ -f $@ ]; then									\
 	    :;											\
