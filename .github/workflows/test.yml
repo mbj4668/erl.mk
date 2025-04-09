@@ -24,6 +24,6 @@ jobs:
 
       - name: Run tests
         run: |
-          export PATH=$PATH:$(pwd)/lux/bin
+          export PATH=$PATH:$(pwd)/lux/bin:$(pwd)/test
           cd test
           lux .
