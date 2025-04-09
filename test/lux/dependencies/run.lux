@@ -1,6 +1,6 @@
 [doc test handling of dependencies]
 
-[config timeout=60000]
+[config timeout=120000]
 
 [shell test]
     # test that the dep_build_erlfmt works - it should build the erlfmt escript and then
