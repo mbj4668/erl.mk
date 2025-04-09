@@ -238,7 +238,7 @@ AtomVM:
 
 ```makefile
 dep_patch_mjson::
-	echo "ERLC_OPTS += -DNO_LISTS_TO_INTEGER_2" >> $(DEPS_DIR)/mjson/Makefile
+	echo "ERLC_OPTS += -DNO_LIST_TO_INTEGER_2" >> $(DEPS_DIR)/mjson/Makefile
 ```
 
 The following steps are performed when erl.mk builds a dependency:
@@ -251,21 +251,21 @@ The following steps are performed when erl.mk builds a dependency:
 
 If the package cannot be built using `rebar3` or `make` as described
 above, you can extend the target `dep_build_NAME::` with commands to
-build the package, and then create the file
-`$(DEPS_BUILT_DIR)/NAME`.
+build the package, and then call the variable `built_dep` with the
+name of the package as a parameter.
 
-For example, to build `erlfmt` as an escript:
+For example, to build the package `erlfmt` as an escript:
 
 ```makefile
 dep_build_erlfmt::
-	( cd $(DEPS_DIR)/erlfmt && make release && touch $(DEPS_BUILT_DIR)/erlfmt ) \
+	( cd $(DEPS_DIR)/erlfmt && make release && $(call built_dep,erlfmt) ) \
 	|| exit 1
 ```
 
 ### Updating dependencies
 
 If a dependency needs to be updated to a new version, update the
-`dep_NAME` variable in your `Makefile`, and remove `deps/dep_NAME`.
+`dep_NAME` variable in your `Makefile`, and remove the directory `deps/NAME`.
 
 ## Tests
 

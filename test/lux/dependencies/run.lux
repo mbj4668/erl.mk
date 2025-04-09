@@ -1,0 +1,34 @@
+[doc test handling of dependencies]
+
+[config timeout=60000]
+
+[shell test]
+    # test that the dep_build_erlfmt works - it should build the erlfmt escript and then
+    # NOT compile it again
+    !make deps
+    ?===> Compiling erlfmt
+    ?===> Building escript for erlfmt
+    -Compiling erlfmt
+    ?SH-PROMPT
+
+    # ensure git and hex works
+    # ensure we have unicode_util_compat, which is a rebar-recursive dependency
+    !ls -1 deps
+    """?
+    eclip
+    erlfmt
+    erl_md
+    idna
+    unicode_util_compat
+    SH-PROMPT
+    """
+
+    !make deps
+    ?Nothing to be done for 'deps'
+    ?SH-PROMPT
+
+    # ensure the dep_patch_eclip worked
+    !ls -1 deps/eclip
+    ?MY_PATCH
+    ?SH-PROMPT
+  

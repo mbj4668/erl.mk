@@ -284,8 +284,6 @@ shell:
 DEPS_DIR ?= $(CURDIR)/deps
 export DEPS_DIR
 
-DEPS_BUILT_DIR = $(DEPS_DIR)/.erl.mk/built
-
 # automatically add lux as a test dependency if needed
 ifneq ($(wildcard test/lux),) # are there any lux tests?
 ifeq ($(shell which lux),) # is lux present in the PATH or set properly?
@@ -301,9 +299,11 @@ _DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(DEPS))
 _BUILD_DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(BUILD_DEPS))
 _TEST_DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(_ALL_TEST_DEPS))
 
-_DEPS_BUILT = $(patsubst %,$(DEPS_BUILT_DIR)/%,$(DEPS))
-_BUILD_DEPS_BUILT = $(patsubst %,$(DEPS_BUILT_DIR)/%,$(BUILD_DEPS))
-_TEST_DEPS_BUILT = $(patsubst %,$(DEPS_BUILT_DIR)/%,$(_ALL_TEST_DEPS))
+_DEPS_BUILT_DIR = $(DEPS_DIR)/.erl.mk/built
+
+_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(DEPS))
+_BUILD_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(BUILD_DEPS))
+_TEST_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(_ALL_TEST_DEPS))
 
 .PHONY: deps fetch-deps build-deps
 deps: fetch-deps build-deps
@@ -317,19 +317,19 @@ build-test-deps: $(_TEST_DEPS_BUILT)
 
 $(DEPS_DIR)/%:
 	$(fetch_verbose) mkdir -p $(DEPS_DIR);							\
-	$(call dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@))			\
-	rm -f $(DEPS_BUILT_DIR)/$(notdir $@);							\
+	$(call _dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@));			\
+	rm -f $(_DEPS_BUILT_DIR)/$(notdir $@);							\
 	if [ -f $@/configure.ac -o -f $@/configure.in ]; then					\
 	  ( cd $@ && autoreconf -if )								\
 	fi;											\
 	if [ -f $@/configure ]; then								\
 	  ( cd $@ && ./configure )								\
 	fi;											\
-	$(MAKE) dep_patch_$(notdir $@)
+	$(MAKE) --no-print-directory dep_patch_$(notdir $@)
 
-$(DEPS_BUILT_DIR)/%: $(DEPS_DIR)/%
-	$(dep_verbose) mkdir -p $(DEPS_BUILT_DIR);						\
-	$(MAKE) dep_build_$(notdir $<) || exit 1;						\
+$(_DEPS_BUILT_DIR)/%: $(DEPS_DIR)/%
+	$(dep_verbose) mkdir -p $(_DEPS_BUILT_DIR);						\
+	$(MAKE) --no-print-directory dep_build_$(notdir $<) || exit 1;				\
 	if [ -f $@ ]; then									\
 	    :;											\
 	elif [ -f $</rebar.config -a ! \( -f $</erlang.mk -a -f $</Makefile \) ]; then		\
@@ -367,23 +367,23 @@ distclean: deps-clean
 deps-clean:
 	rm -rf $(DEPS_DIR)
 
-define dep_fetch_git
+define _dep_fetch_git
 	git clone -q -n $(word 2,$(dep_$1)) $(DEPS_DIR)/$1;					\
-	(cd $(DEPS_DIR)/$(1) && git checkout -q $(call get_dep_version_git,$1));
+	(cd $(DEPS_DIR)/$(1) && git checkout -q $(call get_dep_version_git,$1))
 endef
 
-define dep_fetch_hex
+define _dep_fetch_hex
 	mkdir $(DEPS_DIR)/$1;									\
 	curl -s https://repo.hex.pm/tarballs/$1-$(call get_dep_version_hex,$1).tar |		\
-	tar -xO contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzm;
+	tar -xO contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzm
 endef
 
-define dep_fetch_ln
-	ln -s $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
+define _dep_fetch_ln
+	ln -s $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1
 endef
 
-define dep_fetch_cp
-	cp -R $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1;
+define _dep_fetch_cp
+	cp -R $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1
 endef
 
 get_dep_method = $(word 1,$(dep_$1))
@@ -393,6 +393,8 @@ get_dep_version_git = $(if $(word 3,$(dep_$1)),$(word 3,$(dep_$1)),HEAD)
 get_dep_version_hex = $(word 2,$(dep_$1))
 get_dep_version_cp = -
 get_dep_version_ln = -
+
+built_dep = touch $(_DEPS_BUILT_DIR)/$1;
 
 ### C source
 
