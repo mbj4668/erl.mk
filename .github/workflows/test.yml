@@ -26,4 +26,5 @@ jobs:
         run: |
           export PATH=$PATH:$(pwd)/lux/bin:$(pwd)/test
           cd test
+          export SKIP_EXT_DEPS=true
           lux .

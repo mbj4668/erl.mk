@@ -1,5 +1,6 @@
 [doc test handling of dependencies]
 
+[config skip=SKIP_EXT_DEPS]
 [config timeout=120000]
 
 [shell test]
