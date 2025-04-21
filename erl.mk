@@ -30,12 +30,14 @@ distclean: clean
 SUBDIRS	+= $(patsubst %/Makefile,%,$(wildcard c_src/Makefile))
 
 all clean: _subdirs
+all: _SUBDIR_TARGET=all
+clean: _SUBDIR_TARGET=clean
 
 .PHONY: _subdirs $(SUBDIRS)
 _subdirs: $(SUBDIRS)
 
 $(SUBDIRS):
-	$(verbose) $(MAKE) -C $@ $(MAKECMDGOALS)
+	$(verbose) $(MAKE) -C $@ $(_SUBDIR_TARGET)
 
 ### Useful variables
 
