@@ -12,10 +12,8 @@ include erl.mk
 erl.mk:
 	cp $(ERLMKTOP)/erl.mk .
 
-define dep_patch_eclip
-	touch $(DEPS_DIR)/eclip/MY_PATCH;
-endef
+dep_patch_eclip::
+	touch $(DEPS_DIR)/eclip/MY_PATCH
 
-define dep_build_erlfmt
-	( cd $(DEPS_DIR)/erlfmt && make release && $(call built_dep,erlfmt) );
-endef
+dep_build_erlfmt::
+	( cd $(DEPS_DIR)/erlfmt && make release && $(call built_dep,erlfmt) )

@@ -214,14 +214,14 @@ _EUNIT_TESTS = [$(call mkatomlist,$(_ERL_MODULES) $(_EUNIT_EXTRA_MODULES))]
 endif
 
 .PHONY: eunit
-eunit: test-build-erl test-deps
+eunit: test-deps test-build-erl
 	$(verbose) erl $(_PA_OPTS) -pa test -noshell $(EUNIT_ERL_OPTS) -eval			\
 	"case eunit:test($(_EUNIT_TESTS), [$(EUNIT_OPTS)]) of ok->halt(0);error->halt(2) end"
 
 test: eunit
 
 .PHONY: lux lux-build lux-clean
-lux: do-build-erl test-deps lux-build
+lux: test-deps do-build-erl lux-build
 	$(verbose) set -e;									\
 	if [ -d test/lux ]; then								\
 	  if [ -f $(DEPS_DIR)/lux/bin/lux ]; then						\
@@ -386,6 +386,10 @@ endef
 
 define _dep_fetch_cp
 	cp -R $(abspath $(word 2,$(dep_$1))) $(DEPS_DIR)/$1
+endef
+
+define _dep_fetch_
+	echo "error: missing rule dep_$1"; exit 1
 endef
 
 get_dep_method = $(word 1,$(dep_$1))
