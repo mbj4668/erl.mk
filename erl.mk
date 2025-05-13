@@ -75,7 +75,7 @@ fetch_verbose_0 = @echo " FETCH " $(notdir $@) "($(call get_dep_version,$(notdir
 fetch_verbose_2 = set -x;
 fetch_verbose = $(fetch_verbose_$(V))
 
-dep_verbose_0 = @echo " DEP   " $(notdir $@);
+dep_verbose_0 = @echo " DEP   " $(notdir $<);
 dep_verbose_2 = set -x;
 dep_verbose = $(dep_verbose_$(V))
 
@@ -301,11 +301,9 @@ _DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(DEPS))
 _BUILD_DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(BUILD_DEPS))
 _TEST_DEPS_DIRS = $(patsubst %,$(DEPS_DIR)/%,$(_ALL_TEST_DEPS))
 
-_DEPS_BUILT_DIR = $(DEPS_DIR)/.erl.mk/built
-
-_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(DEPS))
-_BUILD_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(BUILD_DEPS))
-_TEST_DEPS_BUILT = $(patsubst %,$(_DEPS_BUILT_DIR)/%,$(_ALL_TEST_DEPS))
+_DEPS_BUILT = $(patsubst %,$(DEPS_DIR)/%/.dep_built,$(DEPS))
+_BUILD_DEPS_BUILT = $(patsubst %,$(DEPS_DIR)/%/.dep_built,$(BUILD_DEPS))
+_TEST_DEPS_BUILT = $(patsubst %,$(DEPS_DIR)/%/.dep_built,$(_ALL_TEST_DEPS))
 
 .PHONY: deps fetch-deps build-deps
 deps: fetch-deps build-deps
@@ -320,7 +318,6 @@ build-test-deps: $(_TEST_DEPS_BUILT)
 $(DEPS_DIR)/%:
 	$(fetch_verbose) mkdir -p $(DEPS_DIR);							\
 	$(call _dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@));			\
-	rm -f $(_DEPS_BUILT_DIR)/$(notdir $@);							\
 	if [ -f $@/configure.ac -o -f $@/configure.in ]; then					\
 	  ( cd $@ && autoreconf -if )								\
 	fi;											\
@@ -329,9 +326,8 @@ $(DEPS_DIR)/%:
 	fi;											\
 	$(MAKE) --no-print-directory dep_patch_$(notdir $@)
 
-$(_DEPS_BUILT_DIR)/%: $(DEPS_DIR)/%
-	$(dep_verbose) mkdir -p $(_DEPS_BUILT_DIR);						\
-	$(MAKE) --no-print-directory dep_build_$(notdir $<) || exit 1;				\
+$(DEPS_DIR)/%/.dep_built: $(DEPS_DIR)/%
+	$(dep_verbose) $(MAKE) --no-print-directory dep_build_$(notdir $<) || exit 1;		\
 	if [ -f $@ ]; then									\
 	    :;											\
 	elif [ -f $</rebar.config -a ! \( -f $</erlang.mk -a -f $</Makefile \) ]; then		\
@@ -400,7 +396,7 @@ get_dep_version_hex = $(word 2,$(dep_$1))
 get_dep_version_cp = -
 get_dep_version_ln = -
 
-built_dep = touch $(_DEPS_BUILT_DIR)/$1;
+built_dep = touch $(DEPS_DIR)/$1/.dep_built;
 
 ### C source
 
