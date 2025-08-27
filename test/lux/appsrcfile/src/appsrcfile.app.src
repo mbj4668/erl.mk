@@ -1,0 +1,7 @@
+{application,%APP%,
+  [{description,%DESCRIPTION%},
+   {vsn,%VSN%},
+   {modules,[%MODULES%]},
+   {registered,[]},
+   {env, {foo, "hej san", 'foo-bar'}},
+   {applications,%APPLICATIONS%}]}.

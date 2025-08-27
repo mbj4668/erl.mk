@@ -1,0 +1,44 @@
+[doc test generated app file]
+
+[shell test]
+    !make
+    ?APP
+    ?SH-PROMPT
+    !cat ebin/genappfile.app
+    ??{modules,[a]}
+    ?SH-PROMPT
+
+    -APP
+    !make
+    ?SH-PROMPT
+    -
+
+    !cp b-b.erl src/
+    !make
+    ?SH-PROMPT
+    !cat ebin/genappfile.app
+    ??{modules,[a,'b-b']}
+    ?SH-PROMPT
+
+    !env DESCRIPTION="hej hopp" make
+    ?SH-PROMPT
+    !cat ebin/genappfile.app
+    ??{description,"hej hopp"}
+    ?SH-PROMPT
+
+    !env APP_ENV="{foo, \"hej san\", 'foo-bar'}" make
+    ?SH-PROMPT
+    !cat ebin/genappfile.app
+    ??{foo, "hej san", 'foo-bar'}
+    ?SH-PROMPT
+
+    !env DESCRIPTION="hej \"hopp\"" APP_ENV="{foo, \"hej san\", 'foo-bar'}" make
+    ?SH-PROMPT
+    !erl
+    ?1>
+    !file:consult("ebin/genappfile.app").
+    ?{ok,
+    ?2>
+    !halt().
+    ?SH-PROMPT
+    

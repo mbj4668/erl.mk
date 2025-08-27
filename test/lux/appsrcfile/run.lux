@@ -1,0 +1,44 @@
+[doc test app.src file]
+
+[shell test]
+    !make
+    ?APP
+    ?SH-PROMPT
+    !cat ebin/appsrcfile.app
+    ??{modules,[a]}
+    ?SH-PROMPT
+
+    -APP
+    !make
+    ?SH-PROMPT
+    -
+
+    !cp b-b.erl src/
+    !make
+    ?SH-PROMPT
+    !cat ebin/appsrcfile.app
+    ??{modules,[a,'b-b']}
+    ?SH-PROMPT
+
+    !env DESCRIPTION="hej hopp" make
+    ?SH-PROMPT
+    !cat ebin/appsrcfile.app
+    ??{description,"hej hopp"}
+    ?SH-PROMPT
+
+    !env APP_ENV="{foo, \"hej san\", 'foo-bar'}" make
+    ?SH-PROMPT
+    !cat ebin/appsrcfile.app
+    ??{foo, "hej san", 'foo-bar'}
+    ?SH-PROMPT
+
+    !env DESCRIPTION="hej \"hopp\"" APP_ENV="{foo, \"hej san\", 'foo-bar'}" make
+    ?SH-PROMPT
+    !erl
+    ?1>
+    !file:consult("ebin/appsrcfile.app").
+    ?{ok,
+    ?2>
+    !halt().
+    ?SH-PROMPT
+    

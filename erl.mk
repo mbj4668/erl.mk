@@ -114,7 +114,8 @@ clean: erl-clean ebin-clean
 
 .PHONY: erl-clean
 erl-clean:
-	$(verbose) rm -rf ebin/.test .*.d ebin/*.beam ebin/*.app test/*.beam $(GENERATED_ERL_MODULES)
+	$(verbose) rm -rf ebin/.test .*.d ebin/*.beam ebin/*.app test/*.beam .erl.mk.app \
+	    $(GENERATED_ERL_MODULES)
 
 ebin-clean:
 	$(verbose) rm -rf ebin
@@ -138,17 +139,17 @@ _APP_MOD = {mod,{$(_APP)_app,[]}},$(newline)$(space)$(space)$(space)
 endif
 
 ifneq ($(wildcard src/$(_APP).app.src),)
-$(_APP_FILE): src/$(_APP).app.src | ebin
+$(_APP_FILE): src/$(_APP).app.src .erl.mk.app | ebin
 	$(app_verbose) sed -e 's;%APP%;$(_APP);'						\
 	    -e 's;%VSN%;"$(VERSION)";'								\
-	    -e 's;%DESCRIPTION%;"$(DESCRIPTION)";'						\
+	    -e 's;%DESCRIPTION%;"$(subst ",\\\",$(DESCRIPTION))";'				\
 	    -e 's;%APPLICATIONS%;$(_APP_LIST);'							\
-	    -e 's;%APP_ENV%;$(APP_ENV);'							\
-	    -e 's;%MODULES%;$(_ERL_MODULE_LIST);' $< > $@
+	    -e "s;%APP_ENV%;$(subst ",\",$(APP_ENV));"						\
+	    -e "s;%MODULES%;$(_ERL_MODULE_LIST);" $< > $@
 else
 define _APP_FILE_CONTENTS
 {application,$(call mkatom,$(_APP)),
-  [{description,\"$(DESCRIPTION)\"},
+  [{description,\"$(subst ",\\\",$(DESCRIPTION))\"},
    {vsn,\"$(VERSION)\"},
    {modules,[$(_ERL_MODULE_LIST)]},
    $(_APP_MOD){registered,[]},
@@ -156,9 +157,18 @@ define _APP_FILE_CONTENTS
    {applications,[$(_APP_LIST)]}]}.
 endef
 # "
-$(_APP_FILE): | ebin
+$(_APP_FILE): .erl.mk.app | ebin
 	$(app_verbose) printf "$(subst $(newline),\n,$(_APP_FILE_CONTENTS))\n" > $@
 endif
+
+define _APP_FILE_DATA
+$(subst $(newline),,$(subst ',,$(_APP)$(DESCRIPTION)$(VERSION)$(_ERL_MODULE_LIST)$(_APP_MOD)$(APP_ENV)$(_APP_LIST)))
+endef
+#'
+.erl.mk.app: FORCE
+	@if ! (echo '$(_APP_FILE_DATA)' | cmp -s $@); then echo '$(_APP_FILE_DATA)' > $@; fi
+
+FORCE:
 
 ebin:
 	$(gen_verbose) mkdir $@
