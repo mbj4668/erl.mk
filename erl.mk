@@ -166,7 +166,7 @@ $(subst $(newline),,$(subst ',,$(_APP)$(DESCRIPTION)$(VERSION)$(_ERL_MODULE_LIST
 endef
 #'
 .erl.mk.app: FORCE
-	@if ! (echo '$(_APP_FILE_DATA)' | cmp -s $@); then echo '$(_APP_FILE_DATA)' > $@; fi
+	@if ! (echo '$(_APP_FILE_DATA)' | cmp -s - $@); then echo '$(_APP_FILE_DATA)' > $@; fi
 
 FORCE:
 
