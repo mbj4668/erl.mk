@@ -33,7 +33,7 @@ The `Makefile` should look like this:
 include erl.mk
 
 erl.mk:
-	curl -s -O https://raw.githubusercontent.com/mbj4668/erl.mk/main/$@
+	curl -f -s -O https://raw.githubusercontent.com/mbj4668/erl.mk/main/$@
 ```
 Now you can run `make`.  `erl.mk` will be downloaded and the erlang
 code compiled.
