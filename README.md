@@ -1,7 +1,7 @@
 # Makefile for erlang applications
 
-A simpler, smaller and less capable alternative to erlang.mk, that
-doesn't mess with file modification times.
+A simpler, smaller, faster (and less capable) alternative to
+erlang.mk, that doesn't mess with file modification times.
 
 The idea is the same as erlang.mk, i.e., include `erl.mk` in your
 `Makefile` in the top directory of an erlang application, possibly
@@ -52,7 +52,7 @@ $ tree
     └── myapp.erl
 ```
 
-Note that `erl.mk` creates the `.app` file as well.
+Note that erl.mk creates the `.app` file as well.
 
 ## Adding a dependency
 
@@ -66,7 +66,7 @@ dep_eclip = git https://github.com/mbj4668/eclip.git
 include erl.mk
 
 erl.mk:
-	curl -s -O https://raw.githubusercontent.com/mbj4668/erl.mk/main/$@
+	curl -f -s -O https://raw.githubusercontent.com/mbj4668/erl.mk/main/$@
 ```
 
 Then simply run `make` again to download and build the dependency.
@@ -462,9 +462,59 @@ Set `EUNIT_ERL_OPTS` to add options to `erl` when running eunit tests.
 
 Add to `all:` to build more.
 
-Add to `clean:` and `distclean` to clean more.
+Add to `clean:` and `distclean:` to clean more.
 
 Add to `test:` to test more.
+
+# Compatability with other build tools
+
+## rebar or erlang.mk project as erl.mk dependency
+
+When erl.mk compiles a dependency, it will use the
+project's native build tool to compile the dependency.
+
+## erl.mk project as rebar dependency
+
+For rebar3 to be able to build a project, the file `rebar.config` is
+required, and one of `ebin/NAME.app`, `src/NAME.app.src` or
+`src/NAME.app.src.script`.
+
+erl.mk can generate the `rebar.config` file:
+```shell
+$ make rebar.config
+```
+
+In order to automatically generate this file you can add it to the
+`all` target:
+```
+all: rebar.config
+```
+
+Then check in `rebar.config`.
+
+If your project doesn't use `src/NAME.app.src`, then you can generate
+`ebin/NAME.app` and check it in.
+
+If your project uses `src/NAME.app.src`, unfortunately rebar3 will try
+to read that file, but since erl.mk uses a different format than
+rebar3, this will fail.  To solve this, you can set
+`APP_SRC_SUFFIX=.in` and rename `src/NAME.app.src` to
+`src/NAME.app.in`, and then generate `ebin/NAME.app` and check it in.
+
+## erl.mk project as erl.mk dependency
+
+When erl.mk is used in many dependencies, it may be a good idea to not
+re-download erl.mk for every dependency.  When erl.mk builds a
+dependency, it sets the environment variable `ERL_MK_FILENAME`, so it
+is consdidered best practise to check that variable in the `Makefile`:
+```makefile
+erl.mk:
+ifneq ($(ERL_MK_FILENAME),)
+	cp $(ERL_MK_FILENAME) $@
+else
+	curl -f -s -O https://raw.githubusercontent.com/mbj4668/erl.mk/main/$@
+endif
+```
 
 # Why not erlang.mk?
 

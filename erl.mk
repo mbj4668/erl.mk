@@ -138,8 +138,9 @@ ifneq ($(wildcard src/$(_APP)_app.erl),)
 _APP_MOD = {mod,{$(_APP)_app,[]}},$(newline)$(space)$(space)$(space)
 endif
 
-ifneq ($(wildcard src/$(_APP).app.src),)
-$(_APP_FILE): src/$(_APP).app.src .erl.mk.app | ebin
+APP_SRC_SUFFIX ?= .src
+ifneq ($(wildcard src/$(_APP).app$(APP_SRC_SUFFIX)),)
+$(_APP_FILE): src/$(_APP).app$(APP_SRC_SUFFIX) .erl.mk.app | ebin
 	$(app_verbose) sed -e 's;%APP%;$(_APP);'						\
 	    -e 's;%VSN%;"$(VERSION)";'								\
 	    -e 's;%DESCRIPTION%;"$(subst ",\\\",$(DESCRIPTION))";'				\
@@ -346,7 +347,8 @@ $(DEPS_DIR)/%/.dep_built: $(DEPS_DIR)/%
 	      fi;										\
 	    done;										\
 	elif [ -f $</Makefile ]; then								\
-	    ( cd $< && env ERLC_OPTS=+debug_info $(MAKE) ) || exit 1;				\
+	    ( cd $< && env ERLC_OPTS=+debug_info ERL_MK_FILENAME=$(ERL_MK_FILENAME) $(MAKE) )	\
+	    || exit 1;										\
 	elif [ -d $</src ]; then								\
 	    ( cd $< && env ERLC_OPTS=+debug_info $(MAKE) -f $(ERL_MK_FILENAME) ) || exit 1;	\
 	fi;											\
@@ -454,6 +456,15 @@ c_src.mk:
 	'$$(shell rm -f c_src.mk)'								\
 	"endif" > $@
 
+### Compatibility with rebar
+
+rebar.config: .erl.mk.app
+	$(gen_verbose) printf "%s\n"								\
+	"{deps, [$(call mkatomlist, $(DEPS))]}."						\
+	"{pre_hooks, [$(subst }$(space){,}$(comma){,$(foreach s,$(strip $(SUBDIRS)),{compile,\"$(MAKE) -C $(s)\"}))]}."	\
+	"{post_hooks, [$(subst }$(space){,}$(comma){,$(foreach s,$(strip $(SUBDIRS)),{clean,\"$(MAKE) -C $(s) clean\"}))]}."	\
+	> $@
+
 ### Helpers
 
 # Used to be:
@@ -466,5 +477,5 @@ $(shell echo $1 | awk "/^[a-z][a-zA-Z0-9_@]*$$/ {print \$$1 ; next} \
 endef
 
 define mkatomlist
-$(subst $(space),$(comma),$(foreach m,$1,$(call mkatom,$(m))))
+$(subst $(space),$(comma),$(foreach m,$(strip $1),$(call mkatom,$(m))))
 endef
