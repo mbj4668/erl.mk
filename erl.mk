@@ -325,17 +325,6 @@ test-deps: fetch-test-deps build-test-deps
 fetch-test-deps: $(_TEST_DEPS_DIRS)
 build-test-deps: $(_TEST_DEPS_BUILT)
 
-$(DEPS_DIR)/%:
-	$(fetch_verbose) mkdir -p $(DEPS_DIR);							\
-	$(call _dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@));			\
-	if [ -f $@/configure.ac -o -f $@/configure.in ]; then					\
-	  ( cd $@ && autoreconf -if )								\
-	fi;											\
-	if [ -f $@/configure ]; then								\
-	  ( cd $@ && ./configure )								\
-	fi;											\
-	$(MAKE) --no-print-directory dep_patch_$(notdir $@)
-
 $(DEPS_DIR)/%/.dep_built: $(DEPS_DIR)/%
 	$(dep_verbose) $(MAKE) --no-print-directory dep_build_$(notdir $<) || exit 1;		\
 	if [ -f $@ ]; then									\
@@ -362,6 +351,17 @@ $(DEPS_DIR)/%/.dep_built: $(DEPS_DIR)/%
 	    ( cd $< && env ERLC_OPTS=+debug_info $(MAKE) -f $(ERL_MK_FILENAME) ) || exit 1;	\
 	fi;											\
 	touch $@
+
+$(DEPS_DIR)/%:
+	$(fetch_verbose) mkdir -p $(DEPS_DIR);							\
+	$(call _dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@));			\
+	if [ -f $@/configure.ac -o -f $@/configure.in ]; then					\
+	  ( cd $@ && autoreconf -if )								\
+	fi;											\
+	if [ -f $@/configure ]; then								\
+	  ( cd $@ && ./configure )								\
+	fi;											\
+	$(MAKE) --no-print-directory dep_patch_$(notdir $@)
 
 dep_patch_%::
 	@:
