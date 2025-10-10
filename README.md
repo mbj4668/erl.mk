@@ -458,6 +458,8 @@ Set `EUNIT_OPTS` to a list of eunit options.
 
 Set `EUNIT_ERL_OPTS` to add options to `erl` when running eunit tests.
 
+Set `APP_SRC_SUFFIX` to use a different suffix than `.src` for the app source file.
+
 # Customization - targets
 
 Add to `all:` to build more.
@@ -475,25 +477,16 @@ project's native build tool to compile the dependency.
 
 ## erl.mk project as rebar dependency
 
-For rebar3 to be able to build a project, the file `rebar.config` is
-required, and one of `ebin/NAME.app`, `src/NAME.app.src` or
-`src/NAME.app.src.script`.
+For rebar3 to be able to build a project, one of `rebar.config` or
+`rebar.config.script` is required, and one of `ebin/NAME.app`,
+`src/NAME.app.src` or `src/NAME.app.src.script`.
 
-erl.mk can generate the `rebar.config` file:
+erl.mk can generate these files, which then need to be checked in:
 ```shell
-$ make rebar.config
+$ make rebar-files
+ GEN    rebar.config
+ GEN    src/myapp.app.src.script
 ```
-
-In order to automatically generate this file you can add it to the
-`all` target:
-```
-all: rebar.config
-```
-
-Then check in `rebar.config`.
-
-If your project doesn't use `src/NAME.app.src`, then you can generate
-`ebin/NAME.app` and check it in.
 
 If your project uses `src/NAME.app.src`, unfortunately rebar3 will try
 to read that file, but since erl.mk uses a different format than
