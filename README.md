@@ -267,6 +267,24 @@ dep_build_erlfmt::
 If a dependency needs to be updated to a new version, update the
 `dep_NAME` variable in your `Makefile`, and remove the directory `deps/NAME`.
 
+## escript
+
+erl.mk can package the application and its dependencies into self-contained escripts.
+Build an escript with the phony target `escript`:
+```shell
+$ make escript
+ GEN    myapp
+```
+
+By default, this target builds an executable escript with the same name as the application,
+using the module with the same name as the application as the escript entrypoint (i.e., the
+module with the function `main/1`).  This can be customized with the variables
+`ESCRIPT_FILE` and `ESCRIPT_MODULE`:
+```shell
+$ make ESCRIPT_FILE=bin/doit ESCRIPT_MODULE=myapp_script escript
+ GEN    bin/doit
+```
+
 ## Tests
 
 There is built-in support for dialyzer and for running eunit, lux and

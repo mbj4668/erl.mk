@@ -13,6 +13,7 @@
 ###   distclean   - clean application, tests and remove dependencies
 ###   fetch-deps  - fetch dependencies
 ###   build-deps  - build dependencies
+###   escript     - build an escript
 ###
 ###   c_src.mk    - generate `c_src.mk` with useful variables
 ###   rebar-files - generate files for compatibility with rebar
@@ -502,6 +503,30 @@ endif
 
 src/$(_APP).app.src.script: $(_APP_FILE)
 	$(gen_verbose) echo "%% generated my erl.mk for rebar compatibility" > $@ && cat $< >> $@
+
+### Escript
+
+ESCRIPT_FILE ?= $(_APP)
+ESCRIPT_MODULE ?= $(_APP)
+ESCRIPT_ZIP_ADD ?= zip -q
+
+.PHONY: escript
+escript: $(ESCRIPT_FILE)
+
+$(ESCRIPT_FILE): .erl.mk.$(ESCRIPT_MODULE).zip
+	$(verbose) mkdir -p $(dir $(abspath $@))
+	$(gen_verbose) printf "%s\n" \
+		"#!/usr/bin/env escript" \
+		"%%! -escript main $(ESCRIPT_MODULE) -noinput $(ESCRIPT_EMU_ARGS)" > $@
+	$(verbose) cat $< >> $@
+	$(verbose) chmod +x $@
+
+.erl.mk.$(ESCRIPT_MODULE).zip: .erl.mk.app $(_BEAM_FILES)
+	$(verbose) cd .. && $(ESCRIPT_ZIP_ADD) $(abspath $@) $(notdir $(CURDIR))/ebin/*
+ifneq ($(DEPS),)
+	$(verbose) for d in $(DEPS); do \
+		cd $(DEPS_DIR) && $(ESCRIPT_ZIP_ADD) $(abspath $@) $$d/ebin/*; done
+endif
 
 ### Helpers
 

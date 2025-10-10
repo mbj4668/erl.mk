@@ -1,0 +1,8 @@
+[doc test escript]
+
+[shell test]
+    !make
+    ?SH-PROMPT
+    !./bin/foo "he"'j'
+    ???Got args: ["hej"]
+    ?SH-PROMPT
