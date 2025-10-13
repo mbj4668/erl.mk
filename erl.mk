@@ -508,7 +508,7 @@ src/$(_APP).app.src.script: $(_APP_FILE)
 
 ESCRIPT_FILE ?= $(_APP)
 ESCRIPT_MODULE ?= $(_APP)
-ESCRIPT_ZIP_ADD ?= zip -q
+ESCRIPT_ZIP ?= zip -q
 
 .PHONY: escript
 escript: $(ESCRIPT_FILE)
@@ -522,10 +522,10 @@ $(ESCRIPT_FILE): .erl.mk.$(ESCRIPT_MODULE).zip
 	$(verbose) chmod +x $@
 
 .erl.mk.$(ESCRIPT_MODULE).zip: .erl.mk.app $(_BEAM_FILES)
-	$(verbose) cd .. && $(ESCRIPT_ZIP_ADD) $(abspath $@) $(notdir $(CURDIR))/ebin/*
+	$(verbose) cd .. && $(ESCRIPT_ZIP) $(abspath $@) $(notdir $(CURDIR))/ebin/*
 ifneq ($(DEPS),)
 	$(verbose) for d in $(DEPS); do \
-		cd $(DEPS_DIR) && $(ESCRIPT_ZIP_ADD) $(abspath $@) $$d/ebin/*; done
+		cd $(DEPS_DIR) && $(ESCRIPT_ZIP) $(abspath $@) $$d/ebin/*; done
 endif
 
 ### Helpers

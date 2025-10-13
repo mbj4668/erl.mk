@@ -81,6 +81,8 @@ Then simply run `make` again to download and build the dependency.
 
 `rebar3` is used to build downloaded dependencies that need rebar.
 
+`zip` is used by default to generate escripts.
+
 ## Build
 
 By default, erl.mk uses erlc's compile server in order to speed up the
@@ -285,6 +287,14 @@ $ make ESCRIPT_FILE=bin/doit ESCRIPT_MODULE=myapp_script escript
  GEN    bin/doit
 ```
 
+erl.mk uses `zip` by default to generate the escript archive.  This
+can be changed by setting the variable `ESCRIPT_ZIP` to a command
+which is invoked with the name of the archive as the first parameter,
+and a list of files to add to the archive.   For example to use `7z` do:
+```makefile
+ESCRIPT_ZIP = 7z a -tzip
+```
+
 ## Tests
 
 There is built-in support for dialyzer and for running eunit, lux and
@@ -477,6 +487,13 @@ Set `EUNIT_OPTS` to a list of eunit options.
 Set `EUNIT_ERL_OPTS` to add options to `erl` when running eunit tests.
 
 Set `APP_SRC_SUFFIX` to use a different suffix than `.src` for the app source file.
+
+Set `ESCRIPT_FILE` to change the name of the generated escript file.
+
+Set `ESCRIPT_MODULE` to change the name of the escript entrypoint module.
+
+Set `ESCRIPT_ZIP` to change the command used to create the escript zip archive.
+
 
 # Customization - targets
 
