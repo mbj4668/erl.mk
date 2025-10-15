@@ -127,7 +127,8 @@ ebin-clean:
 ebin/%.beam: src/%.erl | ebin
 	$(erlc_verbose) erlc $(filter-out $(REMOVE_ERLC_OPTS),$(ERLC_OPTS)) -o ebin $<
 
-_ERL_MODULE_LIST = $(call mkatomlist,$(filter-out $(EXCLUDE_ERL_MODULES),$(_ERL_MODULES)))
+_APP_ERL_MODULES = $(filter-out $(EXCLUDE_ERL_MODULES),$(_ERL_MODULES))
+_ERL_MODULE_LIST = $(call mkatomlist,$(_APP_ERL_MODULES))
 _DEPS_LIST = $(call mkatomlist,$(sort $(DEPS) $(LOCAL_DEPS)))
 _APP_LIST = kernel,stdlib$(if $(_DEPS_LIST),$(comma)$(_DEPS_LIST),)
 
@@ -522,7 +523,8 @@ $(ESCRIPT_FILE): .erl.mk.$(ESCRIPT_MODULE).zip
 	$(verbose) chmod +x $@
 
 .erl.mk.$(ESCRIPT_MODULE).zip: .erl.mk.app $(_BEAM_FILES)
-	$(verbose) cd .. && $(ESCRIPT_ZIP) $(abspath $@) $(notdir $(CURDIR))/ebin/*
+	$(verbose) cd .. && $(ESCRIPT_ZIP) $(abspath $@) $(notdir $(CURDIR))/ebin/$(_APP).app \
+		$(_APP_ERL_MODULES:%=$(notdir $(CURDIR))/ebin/%.beam)
 ifneq ($(DEPS),)
 	$(verbose) for d in $(DEPS); do \
 		cd $(DEPS_DIR) && $(ESCRIPT_ZIP) $(abspath $@) $$d/ebin/*; done
