@@ -13,7 +13,7 @@
 ###   distclean   - clean application, tests and remove dependencies
 ###   fetch-deps  - fetch dependencies
 ###   build-deps  - build dependencies
-###   escript     - build an escript
+###   escript     - build self-contained escripts
 ###
 ###   c_src.mk    - generate `c_src.mk` with useful variables
 ###   rebar-files - generate files for compatibility with rebar
@@ -99,6 +99,10 @@ _PA_OPTS = $(patsubst %,-pa %/ebin,$(_DEPS_DIRS)) -pa ../$(_APP)/ebin
 ERLC_OPTS ?= -Werror +warn_export_vars +warn_shadow_vars +warn_obsolete_guard
 ERLC_OPTS += +debug_info -MMD -MP -MF .$(notdir $<).d -I include $(_PA_OPTS)
 
+ifneq ($(MAKECMDGOALS),clean)
+-include .*.d
+endif
+
 ERLC_USE_SERVER ?= true
 export ERLC_USE_SERVER
 
@@ -114,6 +118,12 @@ ifneq ($(_ERL_SOURCES),)
 do-build-erl: $(_APP_FILE) $(_BEAM_FILES)
 endif
 
+ebin/%.beam: src/%.erl | ebin
+	$(erlc_verbose) erlc $(filter-out $(REMOVE_ERLC_OPTS),$(ERLC_OPTS)) -o ebin $<
+
+ebin:
+	$(gen_verbose) mkdir $@
+
 clean: erl-clean ebin-clean
 
 .PHONY: erl-clean
@@ -124,8 +134,7 @@ erl-clean:
 ebin-clean:
 	$(verbose) rm -rf ebin
 
-ebin/%.beam: src/%.erl | ebin
-	$(erlc_verbose) erlc $(filter-out $(REMOVE_ERLC_OPTS),$(ERLC_OPTS)) -o ebin $<
+## app file
 
 _APP_ERL_MODULES = $(filter-out $(EXCLUDE_ERL_MODULES),$(_ERL_MODULES))
 _ERL_MODULE_LIST = $(call mkatomlist,$(_APP_ERL_MODULES))
@@ -176,13 +185,6 @@ endef
 
 FORCE:
 
-ebin:
-	$(gen_verbose) mkdir $@
-
-ifneq ($(MAKECMDGOALS),clean)
--include .*.d
-endif
-
 ### Tests
 
 .PHONY: test
@@ -202,9 +204,9 @@ do-test-clean:
 	  $(MAKE) -C test clean;								\
 	fi;											\
 
-_EUNIT_ERL_SOURCES = $(wildcard test/*_tests.erl)
-_EUNIT_ERL_MODULES = $(_EUNIT_ERL_SOURCES:test/%.erl=%)
-_EUNIT_BEAM_FILES = $(_EUNIT_ERL_MODULES:%=test/%.beam)
+_TEST_ERL_SOURCES = $(wildcard test/*.erl)
+_TEST_ERL_MODULES = $(_TEST_ERL_SOURCES:test/%.erl=%)
+_TEST_BEAM_FILES = $(_TEST_ERL_MODULES:%=test/%.beam)
 
 .PHONY: test-build-erl
 test-build-erl: ERLC_OPTS += -DTEST=1
@@ -213,10 +215,15 @@ test-build-erl: $(if $(wildcard ebin/.test),,erl-clean) do-build-erl do-build-er
 	$(verbose) touch ebin/.test
 
 .PHONY: do-build-erl-tests
-do-build-erl-tests: $(_EUNIT_BEAM_FILES)
+do-build-erl-tests: $(_TEST_BEAM_FILES)
 
 test/%.beam: test/%.erl
 	$(erlc_verbose) erlc $(filter-out $(REMOVE_ERLC_OPTS),$(ERLC_OPTS)) -o test $<
+
+## eunit
+
+_EUNIT_ERL_SOURCES = $(wildcard test/*_tests.erl)
+_EUNIT_ERL_MODULES = $(_EUNIT_ERL_SOURCES:test/%.erl=%)
 
 ifdef t
 ifeq (,$(findstring :,$(t)))
@@ -235,6 +242,8 @@ eunit: test-deps test-build-erl
 	"case eunit:test($(_EUNIT_TESTS), [$(EUNIT_OPTS)]) of ok->halt(0);error->halt(2) end"
 
 test: eunit
+
+## lux
 
 .PHONY: lux lux-build lux-clean
 lux: test-deps do-build-erl lux-build
@@ -259,7 +268,7 @@ lux-clean:
 	$(verbose) rm -rf lux_logs
 
 define lux_foreach
-set -e;												\
+$(verbose) set -e;										\
 lux=$$(which lux || echo $(DEPS_DIR)/lux/bin/lux);						\
 luxfiles=$$(if [ -d test/lux -a -x "$${lux}" ]; 						\
 	    then $${lux} --mode list test/lux; fi);						\
@@ -270,6 +279,8 @@ for d in $${luxdirs}; do									\
   fi;												\
  done
 endef
+
+## dialyzer
 
 DIALYZER_PLT ?= .dialyzer.plt
 

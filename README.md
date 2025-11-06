@@ -7,8 +7,19 @@ The idea is the same as erlang.mk, i.e., include `erl.mk` in your
 `Makefile` in the top directory of an erlang application, possibly
 customize, and you're done.
 
-Supports downloading and build of external dependencies and running
-tests.
+## Features
+
+* Automatic build of beam files
+* Automatic generation of the `.app` file
+* Handle generated erlang modules
+* Handle downloading and building of dependencies
+* Handle C code for NIFs etc
+* Build self-contained escripts
+* Generate compatibility files for rebar3
+* Run dialyzer
+* Run eunit tests
+* Run lux tests
+* ... plus all the flexibility of make!
 
 Does not support build of erlang releases.
 
@@ -423,8 +434,10 @@ test-clean  - clean tests
 distclean   - clean application, tests and remove dependencies
 fetch-deps  - fetch dependencies
 build-deps  - build dependencies
+escript     - build self-contained escripts
 
 c_src.mk    - generate `c_src.mk` with useful variables
+rebar-files - generate files for compatibility with rebar
 ```
 
 ## Verbosity
