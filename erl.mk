@@ -139,7 +139,7 @@ ebin-clean:
 
 _APP_ERL_MODULES = $(filter-out $(EXCLUDE_ERL_MODULES),$(_ERL_MODULES))
 _ERL_MODULE_LIST = $(call mkatomlist,$(_APP_ERL_MODULES))
-_DEPS_LIST = $(call mkatomlist,$(sort $(DEPS) $(LOCAL_DEPS)))
+_DEPS_LIST = $(call mkatomlist,$(filter-out $(EXCLUDE_DEPS),$(sort $(DEPS) $(LOCAL_DEPS))))
 _APP_LIST = kernel,stdlib$(if $(_DEPS_LIST),$(comma)$(_DEPS_LIST),)
 
 ifeq ($(ERL_LIBS),)

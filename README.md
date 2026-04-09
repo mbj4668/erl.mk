@@ -118,7 +118,7 @@ variables substituted:
 - `%DESCRIPTION%` - the value of `$(DESCRIPTION)` as a double quoted string
 - `%MODULES%` - a comma separated list of the modules in the application
 - `%APPLICATIONS%` - a comma separated list of applications, calculated
-                    from `DEPS` and `LOCAL_DEPS`.
+                    from `DEPS`, `LOCAL_DEPS`, and `EXCLUDE_DEPS`.
 
 #### Automatically generated
 
@@ -486,6 +486,8 @@ dependencies (these won't be downloaded).
 Set `BUILD_DEPS` to a space-separated list of build dependencies.
 
 Set `TEST_DEPS` to a space-separated list of test dependencies.
+
+Set `EXCLUDE_DEPS` to exclude dependencies from the `applications` field in the app file.
 
 Set `DIALYZER_PLT` to use a specific PLT, e.g., to use a custom built PLT.
 
