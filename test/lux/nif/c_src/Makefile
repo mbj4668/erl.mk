@@ -15,4 +15,4 @@ $(NIF): $(OBJS)
 	$(CC) $^ $(LIBS) $(LDFLAGS_NIF) -o $@
 
 clean:
-	rm -f $(NIF) ./*.o
+	rm -f $(NIF) ./*.o .*.d c_src.mk
