@@ -85,7 +85,7 @@ dep_verbose = $(dep_verbose_$(V))
 
 ### Erlang
 
-_APP = $(shell basename `pwd`)
+_APP = $(notdir $(CURDIR))
 VERSION ?= $(shell git describe --always --tags 2> /dev/null || echo 0.1)
 APP_ENV ?= []
 
@@ -131,6 +131,7 @@ erl-clean:
 	$(verbose) rm -rf ebin/.test .*.d ebin/*.beam ebin/*.app test/*.beam .erl.mk.* \
 	    $(GENERATED_ERL_MODULES)
 
+.PHONY: ebin-clean
 ebin-clean:
 	$(verbose) rm -rf ebin
 
@@ -269,7 +270,7 @@ lux-clean:
 
 define lux_foreach
 $(verbose) set -e;										\
-lux=$$(which lux || echo $(DEPS_DIR)/lux/bin/lux);						\
+lux=$$(which lux 2>/dev/null || echo $(DEPS_DIR)/lux/bin/lux);					\
 luxfiles=$$(if [ -d test/lux -a -x "$${lux}" ]; 						\
 	    then $${lux} --mode list test/lux; fi);						\
 luxdirs=$$(for d in $${luxfiles}; do echo `dirname $${d}`; done | sort -u); 			\
@@ -305,7 +306,7 @@ dialyzer-plt-clean:
 
 .PHONY: shell
 shell:
-	erl $(_PA_OPTS)
+	erl $(_PA_OPTS) $(ERL_OPTS)
 
 ### External dependency handling
 
@@ -401,7 +402,7 @@ endef
 
 define _dep_fetch_hex
 	mkdir $(DEPS_DIR)/$1;									\
-	curl -s https://repo.hex.pm/tarballs/$1-$(call get_dep_version_hex,$1).tar |		\
+	curl -sf https://repo.hex.pm/tarballs/$1-$(call get_dep_version_hex,$1).tar |		\
 	tar -xO contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzm
 endef
 
