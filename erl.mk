@@ -537,7 +537,8 @@ $(ESCRIPT_FILE): .erl.mk.$(ESCRIPT_MODULE).zip
 
 .erl.mk.$(ESCRIPT_MODULE).zip: .erl.mk.app $(_BEAM_FILES)
 	$(verbose) cd .. && $(ESCRIPT_ZIP) $(abspath $@) $(notdir $(CURDIR))/ebin/$(_APP).app \
-		$(_APP_ERL_MODULES:%=$(notdir $(CURDIR))/ebin/%.beam)
+		$(patsubst %,$(notdir $(CURDIR))/ebin/%.beam, \
+			$(sort $(_APP_ERL_MODULES) $(ESCRIPT_MODULE)))
 ifneq ($(DEPS),)
 	$(verbose) for d in $(DEPS); do \
 		cd $(DEPS_DIR) && $(ESCRIPT_ZIP) $(abspath $@) $$d/ebin/*; done
