@@ -1,0 +1,27 @@
+[doc test generation of files for rebar compatibility]
+
+[shell test]
+    !make rebar-files
+    ?GEN +rebar.config
+    ?SH-PROMPT
+    !cat rebar.config
+    ??{foo,"1.0.0"},
+    ??{bar,{git, "https://example.com/bar.git", "v1"}}
+    ?SH-PROMPT
+    !cat src/rebarfiles.app.src.script
+    ??{application,rebarfiles,
+    ?SH-PROMPT
+
+    # nothing changed, so rebar.config must not be generated again
+    -GEN +rebar.config
+    !make rebar-files
+    ?SH-PROMPT
+    -
+
+    # a changed dependency version must end up in rebar.config
+    !make FOO_VSN=2.0.0 rebar-files
+    ?GEN +rebar.config
+    ?SH-PROMPT
+    !cat rebar.config
+    ??{foo,"2.0.0"},
+    ?SH-PROMPT
