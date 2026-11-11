@@ -375,14 +375,15 @@ $(DEPS_DIR)/%/.dep_built: $(DEPS_DIR)/%
 
 $(DEPS_DIR)/%:
 	$(fetch_verbose) mkdir -p $(DEPS_DIR);							\
-	$(call _dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@));			\
-	if [ -f $@/configure.ac -o -f $@/configure.in ]; then					\
-	  ( cd $@ && autoreconf -if )								\
-	fi;											\
-	if [ -f $@/configure ]; then								\
-	  ( cd $@ && ./configure )								\
-	fi;											\
-	$(MAKE) --no-print-directory dep_patch_$(notdir $@)
+	{ $(call _dep_fetch_$(call get_dep_method,$(notdir $@)),$(notdir $@)) &&		\
+	  if [ -f $@/configure.ac -o -f $@/configure.in ]; then					\
+	    ( cd $@ && autoreconf -if )								\
+	  fi &&											\
+	  if [ -f $@/configure ]; then								\
+	    ( cd $@ && ./configure )								\
+	  fi &&											\
+	  $(MAKE) --no-print-directory dep_patch_$(notdir $@);					\
+	} || { rm -rf $@; exit 1; }
 
 dep_patch_%::
 	@:
@@ -396,17 +397,17 @@ distclean: deps-clean
 deps-clean:
 	rm -rf $(DEPS_DIR)
 
+# the fetch functions are used in an && list; if anything fails the
+# directory of the dependency is removed
 define _dep_fetch_git
-	git clone -q -n $(call get_dep_repo_git,$1) $(DEPS_DIR)/$1;				\
-	(cd $(DEPS_DIR)/$(1) && git checkout -q $(call get_dep_version_git,$1)) ||		\
-	  { rm -rf $(DEPS_DIR)/$1; exit 1; }
+	git clone -q -n $(call get_dep_repo_git,$1) $(DEPS_DIR)/$1 &&				\
+	(cd $(DEPS_DIR)/$(1) && git checkout -q $(call get_dep_version_git,$1))
 endef
 
 define _dep_fetch_hex
-	mkdir $(DEPS_DIR)/$1;									\
+	mkdir $(DEPS_DIR)/$1 &&									\
 	curl -sf https://repo.hex.pm/tarballs/$1-$(call get_dep_version_hex,$1).tar |		\
-	tar -xO contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzm ||					\
-	  { rm -rf $(DEPS_DIR)/$1; exit 1; }
+	tar -xO contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzm
 endef
 
 define _dep_fetch_ln
@@ -418,7 +419,7 @@ define _dep_fetch_cp
 endef
 
 define _dep_fetch_
-	echo "error: missing rule dep_$1"; exit 1
+	{ echo "error: missing rule dep_$1"; false; }
 endef
 
 get_dep_method = $(word 1,$(dep_$1))
