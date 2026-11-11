@@ -86,7 +86,8 @@ dep_verbose = $(dep_verbose_$(V))
 ### Erlang
 
 _APP = $(notdir $(CURDIR))
-VERSION ?= $(shell git describe --always --tags 2> /dev/null || echo 0.1)
+_NO_GIT_VERSION = $(if $(wildcard .git),,$(filter $(DEPS_DIR)/%,$(CURDIR)))
+VERSION ?= $(shell $(if $(_NO_GIT_VERSION),,git describe --always --tags 2> /dev/null ||) echo 0.1)
 APP_ENV ?= []
 
 _ERL_SOURCES = $(wildcard src/*.erl)

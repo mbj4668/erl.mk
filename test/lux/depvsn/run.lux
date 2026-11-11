@@ -1,0 +1,11 @@
+[doc test the version of a dependency that is not a git repository]
+
+[shell test]
+    !make
+    ?SH-PROMPT
+
+    # the dependency is not a git repository of its own, so it must not
+    # get its version from the repository that happens to contain it
+    !cat deps/foo/ebin/foo.app
+    ??{vsn,"0.1"}
+    ?SH-PROMPT
