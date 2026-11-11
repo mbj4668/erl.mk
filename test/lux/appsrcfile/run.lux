@@ -41,4 +41,10 @@
     ?2>
     !halt().
     ?SH-PROMPT
-    
+
+    # characters that are special to sed must be taken literally
+    !env DESCRIPTION="a;b & c" make
+    ?SH-PROMPT
+    !cat ebin/appsrcfile.app
+    ??{description,"a;b & c"}
+    ?SH-PROMPT

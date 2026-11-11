@@ -161,10 +161,10 @@ APP_SRC_SUFFIX ?= .src
 ifneq ($(wildcard src/$(_APP).app$(APP_SRC_SUFFIX)),)
 $(_APP_FILE): src/$(_APP).app$(APP_SRC_SUFFIX) .erl.mk.app | ebin
 	$(app_verbose) sed -e 's;%APP%;$(_APP);'						\
-	    -e 's;%VSN%;"$(VERSION)";'								\
-	    -e 's;%DESCRIPTION%;"$(subst ",\\\",$(DESCRIPTION))";'				\
+	    -e 's;%VSN%;"$(call sed_escape,$(VERSION))";'					\
+	    -e 's;%DESCRIPTION%;"$(call sed_escape,$(subst ",\\\",$(DESCRIPTION)))";'		\
 	    -e 's;%APPLICATIONS%;$(_APP_LIST);'							\
-	    -e "s;%APP_ENV%;$(subst ",\",$(APP_ENV));"						\
+	    -e "s;%APP_ENV%;$(call sed_escape,$(subst ",\",$(APP_ENV)));"			\
 	    -e "s;%MODULES%;$(_ERL_MODULE_LIST);" $< > $@
 else
 define _APP_FILE_CONTENTS
@@ -563,6 +563,9 @@ $(shell echo $1 | awk '{for(i=1;i<=NF;i++){s=$$i;
 if(s~/^[a-z][a-zA-Z0-9_@]*$$/){r=s}else{r=sprintf("'\''%s'\''",s)}
 if(i>1)printf ","; printf "%s",r}}')
 endef
+
+# escape the characters that are special in the replacement part of sed's s;;;
+sed_escape = $(subst ;,\;,$(subst &,\&,$1))
 
 define tuplelist
 $(subst }$(space){,}$(comma)\n{,$(strip $1))
