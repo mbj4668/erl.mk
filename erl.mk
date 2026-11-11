@@ -178,7 +178,7 @@ define _APP_FILE_CONTENTS
 endef
 # "
 $(_APP_FILE): .erl.mk.app | ebin
-	$(app_verbose) printf "$(subst $(newline),\n,$(_APP_FILE_CONTENTS))\n" > $@
+	$(app_verbose) printf "%s\n" "$(subst $(newline)," ",$(_APP_FILE_CONTENTS))" > $@
 endif
 
 define _APP_FILE_DATA

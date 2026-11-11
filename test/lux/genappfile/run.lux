@@ -41,4 +41,10 @@
     ?2>
     !halt().
     ?SH-PROMPT
-    
+
+    # a % in the description must be taken literally
+    !env DESCRIPTION="100% erlang %s" make
+    ?SH-PROMPT
+    !cat ebin/genappfile.app
+    ??{description,"100% erlang %s"}
+    ?SH-PROMPT
