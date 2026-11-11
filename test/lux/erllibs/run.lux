@@ -1,0 +1,11 @@
+[doc test that the deps directory is added to ERL_LIBS]
+
+[shell test]
+    !env -u ERL_LIBS make print-erl-libs
+    ?ERL_LIBS=\[/[^:]*/erllibs/deps\]
+    ?SH-PROMPT
+
+    # an ERL_LIBS set by the user must be kept, with the deps directory added
+    !env ERL_LIBS=/some/libs make print-erl-libs
+    ?ERL_LIBS=\[/some/libs:/[^:]*/erllibs/deps\]
+    ?SH-PROMPT

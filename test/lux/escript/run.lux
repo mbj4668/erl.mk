@@ -1,8 +1,45 @@
 [doc test escript]
 
+[global list=erl -noshell -eval '{ok,S}=escript:extract("bin/foo",[]),{ok,L}=zip:list_dir(proplists:get_value(archive,S)),[io:format("~s~n",[element(2,F)])||F<-L,element(1,F)==zip_file],halt().']
+
 [shell test]
     !make
     ?SH-PROMPT
     !./bin/foo "he"'j'
     ???Got args: ["hej"]
+    ?SH-PROMPT
+
+    # building just the escript from a clean tree must include the app file
+    !make clean
+    ?SH-PROMPT
+    !make escript
+    ?SH-PROMPT
+    !$list
+    ?escript/ebin/escript\.app
+    ?escript/ebin/a\.beam
+    ?SH-PROMPT
+    !./bin/foo "he"'j'
+    ???Got args: ["hej"]
+    ?SH-PROMPT
+
+    # a removed module must not be left in the escript
+    !cp b.erl src/
+    ?SH-PROMPT
+    !make escript
+    ?SH-PROMPT
+    !$list
+    ?escript/ebin/b\.beam
+    ?SH-PROMPT
+    !rm -f src/b.erl ebin/b.beam
+    ?SH-PROMPT
+    !make escript
+    ?SH-PROMPT
+    -escript/ebin/b\.beam
+    !$list
+    ?escript/ebin/a\.beam
+    ?SH-PROMPT
+    -
+
+[cleanup]
+    !rm -f src/b.erl
     ?SH-PROMPT

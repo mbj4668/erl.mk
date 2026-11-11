@@ -129,7 +129,7 @@ clean: erl-clean ebin-clean
 .PHONY: erl-clean
 erl-clean:
 	$(verbose) rm -rf ebin/.test .*.d ebin/*.beam ebin/*.app test/*.beam .erl.mk.* \
-	    $(GENERATED_ERL_MODULES)
+	    $(GENERATED_ERL_MODULES:%=src/%.erl)
 
 .PHONY: ebin-clean
 ebin-clean:
@@ -141,6 +141,10 @@ _APP_ERL_MODULES = $(filter-out $(EXCLUDE_ERL_MODULES),$(_ERL_MODULES))
 _ERL_MODULE_LIST = $(call mkatomlist,$(_APP_ERL_MODULES))
 _DEPS_LIST = $(call mkatomlist,$(filter-out $(EXCLUDE_DEPS),$(sort $(DEPS) $(LOCAL_DEPS))))
 _APP_LIST = kernel,stdlib$(if $(_DEPS_LIST),$(comma)$(_DEPS_LIST),)
+
+# export DEPS_DIR so that recursive dependencies are fetched to DEPS_DIR
+DEPS_DIR ?= $(CURDIR)/deps
+export DEPS_DIR
 
 ifeq ($(ERL_LIBS),)
 	ERL_LIBS = $(DEPS_DIR)
@@ -310,10 +314,6 @@ shell:
 
 ### External dependency handling
 
-# export DEPS_DIR so that recursive dependencies are fetched to DEPS_DIR
-DEPS_DIR ?= $(CURDIR)/deps
-export DEPS_DIR
-
 # automatically add lux as a test dependency if needed
 ifneq ($(wildcard test/lux),) # are there any lux tests?
 ifeq ($(shell which lux),) # is lux present in the PATH or set properly?
@@ -397,13 +397,15 @@ deps-clean:
 
 define _dep_fetch_git
 	git clone -q -n $(call get_dep_repo_git,$1) $(DEPS_DIR)/$1;				\
-	(cd $(DEPS_DIR)/$(1) && git checkout -q $(call get_dep_version_git,$1))
+	(cd $(DEPS_DIR)/$(1) && git checkout -q $(call get_dep_version_git,$1)) ||		\
+	  { rm -rf $(DEPS_DIR)/$1; exit 1; }
 endef
 
 define _dep_fetch_hex
 	mkdir $(DEPS_DIR)/$1;									\
 	curl -sf https://repo.hex.pm/tarballs/$1-$(call get_dep_version_hex,$1).tar |		\
-	tar -xO contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzm
+	tar -xO contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzm ||					\
+	  { rm -rf $(DEPS_DIR)/$1; exit 1; }
 endef
 
 define _dep_fetch_ln
@@ -535,7 +537,8 @@ $(ESCRIPT_FILE): .erl.mk.$(ESCRIPT_MODULE).zip
 	$(verbose) cat $< >> $@
 	$(verbose) chmod +x $@
 
-.erl.mk.$(ESCRIPT_MODULE).zip: .erl.mk.app $(_BEAM_FILES)
+.erl.mk.$(ESCRIPT_MODULE).zip: $(_APP_FILE) $(_BEAM_FILES)
+	$(verbose) rm -f $@
 	$(verbose) cd .. && $(ESCRIPT_ZIP) $(abspath $@) $(notdir $(CURDIR))/ebin/$(_APP).app \
 		$(patsubst %,$(notdir $(CURDIR))/ebin/%.beam, \
 			$(sort $(_APP_ERL_MODULES) $(ESCRIPT_MODULE)))

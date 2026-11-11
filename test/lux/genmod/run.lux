@@ -1,0 +1,25 @@
+[doc test generated erlang modules]
+
+[shell test]
+    !make
+    ?SH-PROMPT
+    !cat ebin/genmod.app
+    ??{modules,[a,g]}
+    ?SH-PROMPT
+    !ls -1 src ebin
+    ?g\.beam
+    ?g\.erl
+    ?SH-PROMPT
+
+    # clean must remove the generated source file, and nothing else
+    # that happens to have the same name as the module
+    !make clean
+    ?SH-PROMPT
+    -g\.erl
+    !ls -1 src
+    ?a\.erl
+    ?SH-PROMPT
+    -
+    !ls -1 g
+    ?keep
+    ?SH-PROMPT

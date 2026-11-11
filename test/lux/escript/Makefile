@@ -18,4 +18,4 @@ erl.mk:
 clean: my-clean
 
 my-clean:
-	rm -rf bin
+	rm -rf bin src/b.erl
